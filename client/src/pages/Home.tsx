@@ -1684,7 +1684,7 @@ export default function Home() {
           {/* Social CTAs */}
           <div className="contact-ctas flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-start">
             <a 
-              href="mailto:ganeshbamalwa.work@gmail.com" 
+              href="mailto:ganeshbamalwa89@gmail.com" 
               className="glass-btn flex items-center gap-2 pointer-events-auto cursor-pointer w-full md:w-auto justify-center"
             >
               Email Work
