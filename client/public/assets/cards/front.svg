@@ -1,0 +1,16 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1400' height='2000' viewBox='0 0 700 1000'>
+  <defs>
+    <linearGradient id='fg' x1='0' x2='1' y1='0' y2='1'>
+      <stop offset='0' stop-color='#0f1112'/>
+      <stop offset='1' stop-color='#1b1d1f'/>
+    </linearGradient>
+  </defs>
+  <rect width='100%' height='100%' rx='36' fill='url(#fg)' />
+  <g opacity='0.02'>
+    <rect x='40' y='140' width='620' height='720' rx='22' fill='rgba(255,255,255,0.02)' />
+  </g>
+  <g transform='translate(48,160)' fill='rgba(255,255,255,0.9)'>
+    <text x='20' y='50' font-family='Outfit, Arial' font-size='28'>Project Title</text>
+    <text x='20' y='120' font-family='Outfit, Arial' font-size='14' fill='rgba(255,255,255,0.75)'>Short description goes here — cinematic, tactile.</text>
+  </g>
+</svg>
