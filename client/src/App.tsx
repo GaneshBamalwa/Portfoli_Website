@@ -6,7 +6,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import ParticleCanvas from "./components/ParticleCanvas";
-import CustomCursor from "./components/CustomCursor";
 
 
 function Router() {
@@ -34,7 +33,6 @@ function App() {
       >
         <TooltipProvider>
           <div id="app-root" className="relative w-full min-h-screen">
-            <CustomCursor />
             <ParticleCanvas />
             <Toaster />
             <Router />
