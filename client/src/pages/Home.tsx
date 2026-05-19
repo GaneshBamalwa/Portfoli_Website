@@ -40,6 +40,41 @@ export default function Home() {
   const [showSwipeHint, setShowSwipeHint] = useState(true);
   const [isReneOpen] = useAtom(reneChatOpenAtom);
   const isMobile = useMobileDetect();
+  
+  // Mobile-only carousel state & handlers
+  const [diagramCollapsed, setDiagramCollapsed] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const mobileTouchStartX = useRef(0);
+  const mobileTouchStartY = useRef(0);
+
+  const handleMobileTouchStart = (e: React.TouchEvent) => {
+    mobileTouchStartX.current = e.changedTouches[0].clientX;
+    mobileTouchStartY.current = e.changedTouches[0].clientY;
+  };
+
+  const handleMobileTouchEnd = (e: React.TouchEvent) => {
+    const dx = mobileTouchStartX.current - e.changedTouches[0].clientX;
+    const dy = mobileTouchStartY.current - e.changedTouches[0].clientY;
+
+    // Only trigger if horizontal swipe (not vertical scroll):
+    if (Math.abs(dx) < Math.abs(dy)) return;
+    if (Math.abs(dx) < 40) return; // minimum swipe distance
+
+    if (dx > 0) setActiveProject(prev => Math.min(prev + 1, 2));
+    if (dx < 0) setActiveProject(prev => Math.max(prev - 1, 0));
+  };
+
+  const goNext = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveProject(prev => Math.min(prev + 1, 2));
+  };
+
+  const goPrev = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveProject(prev => Math.max(prev - 1, 0));
+  };
 
   // Parent refs for GSAP ScrollTrigger context
   const originRef = useRef<HTMLDivElement>(null);
@@ -87,6 +122,13 @@ export default function Home() {
       ScrollTrigger.getAll().forEach((t) => t.kill());
     };
   }, []);
+  useEffect(() => {
+    if (isMobile && activeChapter === 2) {
+      const scenes = ['atlas', 'nexora', 'stratos'];
+      setSubScene(scenes[activeProject]);
+    }
+  }, [isMobile, activeChapter, activeProject]);
+
   // Node descriptions for the ATLAS, NEXORA, and STRATOS interactive architectures
   const NODE_DETAILS: Record<string, { title: string; desc: string; status: string; load: string }> = {
     'input': { title: 'WORKLOAD INGEST', desc: 'Accepts raw startup ideas, tasks, or event triggers, injecting them into the pipeline.', status: 'Active', load: '12 events/s' },
@@ -145,16 +187,21 @@ export default function Home() {
           setActiveChapter(currentActive);
 
           // Update active horizontal subscene
-          if (currentActive === 2 && horizontalRef.current) {
-            const rect = horizontalRef.current.getBoundingClientRect();
-            const offsetLeft = Math.abs(rect.left);
-            const width = window.innerWidth;
-            if (offsetLeft < width * 0.5) {
-              setSubScene('atlas');
-            } else if (offsetLeft < width * 1.5) {
-              setSubScene('nexora');
-            } else {
-              setSubScene('stratos');
+          if (currentActive === 2) {
+            if (window.innerWidth < 768) {
+              const scenes = ['atlas', 'nexora', 'stratos'];
+              setSubScene(scenes[activeProject]);
+            } else if (horizontalRef.current) {
+              const rect = horizontalRef.current.getBoundingClientRect();
+              const offsetLeft = Math.abs(rect.left);
+              const width = window.innerWidth;
+              if (offsetLeft < width * 0.5) {
+                setSubScene('atlas');
+              } else if (offsetLeft < width * 1.5) {
+                setSubScene('nexora');
+              } else {
+                setSubScene('stratos');
+              }
             }
           } else {
             setSubScene(null);
@@ -813,673 +860,1135 @@ export default function Home() {
 
 
       {/* CHAPTER 2 — THE BUILD (ATLAS, Nexora & STRATOS Horizontal showcase) */}
-      <section 
-        id="chapter-projects" 
-        ref={buildRef}
-        className="relative w-full h-screen bg-[#030303]"
-        style={{ scrollSnapAlign: 'start' }}
-      >
-        <div 
-          ref={horizontalRef}
-          className="sticky top-0 h-screen w-[300vw] flex flex-row items-center overflow-hidden"
-          onTouchStart={handleProjectTouchStart}
-          onTouchEnd={handleProjectTouchEnd}
+      {isMobile ? (
+        <section
+          id="chapter-projects"
+          className="relative w-full bg-[#030303] py-16 px-6 border-t border-white/5 z-10"
         >
-          
-          {/* PANEL 2A: ATLAS PROJECT (Node Graph reveal) */}
-          <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 transition-all duration-700 ease-out ${
-            activeProject === 0 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
-          }`}>
-                 {/* Project Spec details */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4 max-md:max-w-full">
-              <span className="text-xs font-light uppercase tracking-[0.35em] text-accent mb-3 block">
-                02 // THE BUILD
-              </span>
-              <div className="relative mb-6">
-                <div className="absolute -top-[64px] -left-[10px] font-black leading-none select-none pointer-events-none text-[8.5rem]" style={{ color: 'rgba(255,255,255,0.012)', fontFamily: 'var(--font-body)', fontWeight: 900 }}>01</div>
-                <h3 
-                  className="text-5xl md:text-7xl font-light tracking-tight mb-0 uppercase project-title-atlas relative z-10" 
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  ATLAS
-                </h3>
-              </div>
-              <p className="text-accent font-mono text-xs uppercase tracking-wider mb-2">
-                "Not a chatbot. A control plane."
-              </p>
-              <p className="text-[#C9A961] font-mono text-[10px] uppercase tracking-wider mb-5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C9A961] animate-pulse" />
-                Won 1st place at Samsung PRISM out of 150+ competing teams.
-              </p>
-              <p 
-                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
-                style={{ fontFamily: 'var(--font-body)' }}
+          {/* Mobile carousel wrapper */}
+          <div className="w-full relative overflow-hidden">
+            {/* The scrollable track */}
+            <div
+              ref={trackRef}
+              onTouchStart={handleMobileTouchStart}
+              onTouchEnd={handleMobileTouchEnd}
+              style={{ touchAction: 'pan-y' }}
+              className="flex w-full"
+            >
+              {/* Slide 1: ATLAS */}
+              <div 
+                className="min-w-full w-full flex-shrink-0 px-1 pb-4 flex flex-col gap-4 text-left transition-all duration-700 ease-out"
+                style={{
+                  transform: `translateX(-${activeProject * 100}%)`,
+                  transition: 'transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  willChange: 'transform',
+                }}
               >
-                A distributed multi-agent AI orchestration platform. Built to take natural language requests, decompose them into structured multi-step workflows, and execute them across specialized services — with every reasoning step visible in real time.
-              </p>
+                {/* ATLAS Specs details */}
+                <p className="text-xs font-light uppercase tracking-[0.35em] text-accent">
+                  02 // THE BUILD
+                </p>
+                
+                <h2 className="text-5xl font-light tracking-tight uppercase text-white font-body" style={{ fontWeight: 300 }}>
+                  ATLAS
+                </h2>
 
-              {/* GitHub Link Button — its own row above tags */}
-              <div className="mb-4 max-md:order-4 md:order-none max-md:w-full">
+                <p className="text-accent font-mono text-xs uppercase tracking-wider">
+                  "Not a chatbot. A control plane."
+                </p>
+
+                <p className="text-[#C9A961] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9A961] animate-pulse" />
+                  Won 1st place at Samsung PRISM out of 150+ competing teams.
+                </p>
+
+                <p className="text-sm leading-relaxed text-white/70 font-light font-body">
+                  A distributed multi-agent AI orchestration platform. Built to take natural language requests, decompose them into structured multi-step workflows, and execute them across specialized services — with every reasoning step visible in real time.
+                </p>
+
+                {/* GitHub button — in flow, above tags */}
                 <a 
                   href="https://github.com/GaneshBamalwa/atlas" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="github-project-btn github-btn-atlas pointer-events-auto max-md:w-full max-md:justify-center"
+                  className="github-project-btn github-btn-atlas pointer-events-auto w-fit inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm text-white"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
                   </svg>
                   <span>GitHub</span>
                 </a>
+
+                {/* Tags — wrapping */}
+                <div className="flex flex-wrap gap-2 w-full">
+                  {['Python', 'FastAPI', 'LangChain', 'React', 'TypeScript', 'Redis', 'ChromaDB', 'Docker', 'ReactFlow', 'Google APIs', 'MCP'].map(tag => (
+                    <span key={tag} className="tech-pill-atlas px-3 py-1 text-xs rounded-full border border-white/20 text-white whitespace-nowrap">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Hint text */}
+                <p className="text-[10px] font-mono hint-terminal-prompt-green uppercase tracking-wider select-none">
+                  &gt; Hover nodes on the graph to inspect runtime states.
+                </p>
+
+                {/* Diagram box */}
+                <div className={`relative w-full rounded-lg overflow-hidden border border-white/5 bg-black/60 backdrop-blur-sm p-4 transition-all duration-300 ${diagramCollapsed ? 'h-14' : 'h-[260px]'}`}>
+                  <button 
+                    onClick={() => setDiagramCollapsed(!diagramCollapsed)}
+                    className="absolute top-2 right-2 z-30 text-white/40 hover:text-white transition-colors text-xs font-mono px-2 py-0.5 rounded border border-white/10 bg-black/40"
+                  >
+                    {diagramCollapsed ? '+' : '—'}
+                  </button>
+                  
+                  {!diagramCollapsed && (
+                    <>
+                      <div className="absolute inset-0 project-right-panel project-right-panel-atlas -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(232, 232, 232, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
+                      <svg viewBox="0 0 600 450" className="w-full h-full select-none max-w-md mx-auto" style={{ overflow: 'visible' }}>
+                        <defs>
+                          <filter id="glow-platinum-mobile" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="6" result="blur" />
+                            <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                          </filter>
+                        </defs>
+                        {/* 1. Input -> Planner */}
+                        <path d="M 80 225 L 200 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 80 225 L 200 135" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* 2. Input -> Swarm */}
+                        <path d="M 80 225 L 200 315" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 80 225 L 200 315" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* 3. Planner -> Guard */}
+                        <path d="M 200 135 L 340 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 200 135 L 340 135" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* 4. Swarm -> Sandbox */}
+                        <path d="M 200 315 L 340 315" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 200 315 L 340 315" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* 5. Guard -> Output */}
+                        <path d="M 340 135 L 500 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 340 135 L 500 225" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* 6. Sandbox -> Output */}
+                        <path d="M 340 315 L 500 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 340 315 L 500 225" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* Nodes */}
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('input')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'input' ? null : 'input')}>
+                          <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2.5" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">INGEST</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('planner')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'planner' ? null : 'planner')}>
+                          <circle cx="200" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <text x="200" y="139" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PLANNER</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('swarm')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'swarm' ? null : 'swarm')}>
+                          <circle cx="200" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <text x="200" y="319" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SWARM</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('guard')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'guard' ? null : 'guard')}>
+                          <circle cx="340" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <text x="340" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">GUARD</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('aegis')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'aegis' ? null : 'aegis')}>
+                          <circle cx="340" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <text x="340" y="319" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SANDBOX</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('output')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'output' ? null : 'output')}>
+                          <circle cx="500" cy="225" r="34" fill="#E8E8E8" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:opacity-90" />
+                          <text x="500" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DEPLOY</text>
+                        </g>
+                      </svg>
+                      
+                      {/* Telemetry info HUD box */}
+                      <div className={`absolute bottom-3 left-3 right-3 p-3 rounded-lg border bg-black/90 backdrop-blur-md transition-all duration-300 text-left ${
+                        activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-accent/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
+                      }`}>
+                        {activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') && (
+                          <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                            <div className="col-span-2 border-b border-white/10 pb-1 mb-1 flex items-center justify-between">
+                              <span className="font-mono text-accent uppercase font-bold tracking-wider">{NODE_DETAILS[activeNode].title}</span>
+                              <span className="px-1.5 py-0.2 rounded-full bg-accent/10 text-[8px] text-accent border border-accent/25">{NODE_DETAILS[activeNode].status}</span>
+                            </div>
+                            <div>
+                              <span className="text-white/40 block mb-0.2">Function</span>
+                              <span className="text-white/90 leading-tight block">{NODE_DETAILS[activeNode].desc}</span>
+                            </div>
+                            <div className="pl-3 border-l border-white/10 flex flex-col justify-center">
+                              <span className="text-white/40 block mb-0.2">Telemetry</span>
+                              <span className="font-mono text-accent text-xs">{NODE_DETAILS[activeNode].load}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {/* Tech Tags — wrapping row below GitHub button */}
-              <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
-                activeProject === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}>
-                {['Python', 'FastAPI', 'LangChain', 'React', 'TypeScript', 'Redis', 'ChromaDB', 'Docker', 'ReactFlow', 'Google APIs', 'MCP'].map(tag => (
-                  <span key={tag} className="tech-pill-atlas whitespace-nowrap flex-shrink-0">
-                    {tag}
-                  </span>
-                ))}
-              </div>
- 
-              {/* Interaction instruction */}
-              <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-green uppercase tracking-wider select-none max-md:order-6 md:order-none">
-                <span>&gt; Hover nodes on the graph to inspect runtime states.</span>
-                <span className="terminal-cursor font-bold">_</span>
-              </div>
-            </div>
- 
-            {/* Visual Interactive Node Graph */}
-            <div className="w-full lg:w-[50%] h-64 md:h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card overflow-x-auto md:overflow-visible">
-              <div className="absolute inset-0 project-right-panel project-right-panel-atlas -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(232, 232, 232, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
-              
-              <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
-                <defs>
-                  {/* Glowing neon shadow filter */}
-                  <filter id="glow-platinum" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="6" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-
-                {/* Animated Pulsing Connectors */}
-                {/* 1. Input -> Planner */}
-                <path d="M 80 225 L 200 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 80 225 L 200 135" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* 2. Input -> Swarm */}
-                <path d="M 80 225 L 200 315" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 80 225 L 200 315" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* 3. Planner -> Guard */}
-                <path d="M 200 135 L 340 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 200 135 L 340 135" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* 4. Swarm -> Sandbox */}
-                <path d="M 200 315 L 340 315" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 200 315 L 340 315" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* 5. Guard -> Output */}
-                <path d="M 340 135 L 500 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 340 135 L 500 225" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* 6. Sandbox -> Output */}
-                <path d="M 340 315 L 500 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 340 315 L 500 225" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* Interactive SVG Nodes */}
-                {/* NODE 1: Ingestion */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('input')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2.5" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
-                  <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">INGEST</text>
-                </g>
-
-                {/* NODE 2: Planner */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('planner')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="200" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
-                  <text x="200" y="139" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PLANNER</text>
-                </g>
-
-                {/* NODE 3: Swarm */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('swarm')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="200" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
-                  <text x="200" y="319" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SWARM</text>
-                </g>
-
-                {/* NODE 4: Guard */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('guard')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="340" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
-                  <text x="340" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">GUARD</text>
-                </g>
-
-                {/* NODE 5: Sandbox */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('aegis')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="340" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
-                  <text x="340" y="319" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SANDBOX</text>
-                </g>
-
-                {/* NODE 6: Output */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('output')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="500" cy="225" r="34" fill="#E8E8E8" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:opacity-90" />
-                  <text x="500" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DEPLOY</text>
-                </g>
-              </svg>
-
-              {/* Dynamic Overlay HUD Info box */}
-              <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85 backdrop-blur-md transition-all duration-300 text-left ${
-                activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-accent/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
-              }`}>
-                {activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') && (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="col-span-2 border-b border-white/10 pb-1.5 mb-1.5 flex items-center justify-between">
-                      <span className="font-mono text-accent uppercase font-bold tracking-wider">{NODE_DETAILS[activeNode].title}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-accent/10 text-[9px] text-accent border border-accent/25">{NODE_DETAILS[activeNode].status}</span>
-                    </div>
-                    <div>
-                      <span className="text-white/40 block mb-0.5">Function</span>
-                      <span className="text-white/90 text-[11px] leading-relaxed block">{NODE_DETAILS[activeNode].desc}</span>
-                    </div>
-                    <div className="pl-4 border-l border-white/10 flex flex-col justify-center">
-                      <span className="text-white/40 block mb-0.5">Telemetry</span>
-                      <span className="font-mono text-accent text-[13px]">{NODE_DETAILS[activeNode].load}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* PANEL 2B: NEXORA PROJECT */}
-          <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#060606] transition-all duration-700 ease-out ${
-            activeProject === 1 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
-          }`}>
-                 {/* Description */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4 max-md:max-w-full">
-              <span className="text-xs font-light uppercase tracking-[0.35em] text-[#b464ff] mb-3 block">
-                02 // THE BUILD
-              </span>
-              <div className="relative mb-6">
-                <div className="absolute -top-[64px] -left-[10px] font-black leading-none select-none pointer-events-none text-[8.5rem]" style={{ color: 'rgba(255,255,255,0.012)', fontFamily: 'var(--font-body)', fontWeight: 900 }}>02</div>
-                <h3 
-                  className="text-5xl md:text-7xl font-light tracking-tight mb-0 uppercase project-title-nexora relative z-10" 
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  NEXORA
-                </h3>
-              </div>
-              <p className="text-[#b464ff] font-mono text-xs uppercase tracking-wider mb-6">
-                "Built to be secure, scalable, and actually nice to use."
-              </p>
-              <p 
-                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
-                style={{ fontFamily: 'var(--font-body)' }}
+              {/* Slide 2: NEXORA */}
+              <div 
+                className="min-w-full w-full flex-shrink-0 px-1 pb-4 flex flex-col gap-4 text-left transition-all duration-700 ease-out"
+                style={{
+                  transform: `translateX(-${activeProject * 100}%)`,
+                  transition: 'transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  willChange: 'transform',
+                }}
               >
-                A production-ready AI-powered customer support platform. Three user tiers, 25+ REST endpoints, a full ticket lifecycle, and an AI engine that triages requests and assists agents in real time.
-              </p>
-              
-              <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
-                activeProject === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}>
-                {['FastAPI', 'React 19', 'Gemini 2.0', 'MySQL', 'SQLite', 'JWT', 'bcrypt', 'Three.js', 'Framer Motion', 'Tailwind CSS', 'Recharts'].map(tag => (
-                  <span key={tag} className="tech-pill-nexora whitespace-nowrap flex-shrink-0">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+                {/* NEXORA specs details */}
+                <p className="text-xs font-light uppercase tracking-[0.35em] text-[#b464ff]">
+                  02 // THE BUILD
+                </p>
+                
+                <h2 className="text-5xl font-light tracking-tight uppercase text-white font-body" style={{ fontWeight: 300 }}>
+                  NEXORA
+                </h2>
 
-              {/* GitHub Link Button */}
-              <div className="mb-8 flex flex-col gap-4 max-md:order-4 md:order-none max-md:w-full">
+                <p className="text-[#b464ff] font-mono text-xs uppercase tracking-wider">
+                  "Built to be secure, scalable, and actually nice to use."
+                </p>
+
+                <p className="text-sm leading-relaxed text-white/70 font-light font-body">
+                  A production-ready AI-powered customer support platform. Three user tiers, 25+ REST endpoints, a full ticket lifecycle, and an AI engine that triages requests and assists agents in real time.
+                </p>
+
+                {/* GitHub button — in flow, above tags */}
                 <a 
                   href="https://github.com/GaneshBamalwa/nexora" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="github-project-btn github-btn-nexora w-max pointer-events-auto max-md:w-full max-md:justify-center"
+                  className="github-project-btn github-btn-nexora pointer-events-auto w-fit inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm text-white"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
                   </svg>
                   <span>GitHub</span>
                 </a>
-                
-                {/* Interaction instruction */}
-                <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-purple uppercase tracking-wider select-none max-md:order-6 md:order-none">
-                  <span>&gt; Hover nodes on the graph to inspect support workflow.</span>
-                  <span className="terminal-cursor font-bold">_</span>
+
+                {/* Tags — wrapping */}
+                <div className="flex flex-wrap gap-2 w-full">
+                  {['FastAPI', 'React 19', 'Gemini 2.0', 'MySQL', 'SQLite', 'JWT', 'bcrypt', 'Three.js', 'Framer Motion', 'Tailwind CSS', 'Recharts'].map(tag => (
+                    <span key={tag} className="tech-pill-nexora px-3 py-1 text-xs rounded-full border border-white/20 text-white whitespace-nowrap">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Hint text */}
+                <p className="text-[10px] font-mono hint-terminal-prompt-purple uppercase tracking-wider select-none">
+                  &gt; Hover nodes on the graph to inspect support workflow.
+                </p>
+
+                {/* Diagram box */}
+                <div className={`relative w-full rounded-lg overflow-hidden border border-white/5 bg-black/60 backdrop-blur-sm p-4 transition-all duration-300 ${diagramCollapsed ? 'h-14' : 'h-[260px]'}`}>
+                  <button 
+                    onClick={() => setDiagramCollapsed(!diagramCollapsed)}
+                    className="absolute top-2 right-2 z-30 text-white/40 hover:text-white transition-colors text-xs font-mono px-2 py-0.5 rounded border border-white/10 bg-black/40"
+                  >
+                    {diagramCollapsed ? '+' : '—'}
+                  </button>
+                  
+                  {!diagramCollapsed && (
+                    <>
+                      <div className="absolute inset-0 project-right-panel project-right-panel-nexora -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(180, 100, 255, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
+                      <svg viewBox="0 0 600 450" className="w-full h-full select-none max-w-md mx-auto" style={{ overflow: 'visible' }}>
+                        <defs>
+                          <filter id="glow-purple-mobile" x="-30%" y="-30%" width="160%" height="160%">
+                            <feGaussianBlur stdDeviation="8" result="blur" />
+                            <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                          </filter>
+                          <filter id="glow-triage-mobile" x="-40%" y="-40%" width="180%" height="180%">
+                            <feGaussianBlur stdDeviation="12" result="blur" />
+                            <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                          </filter>
+                        </defs>
+                        {/* 1. SUBMIT -> TRIAGE */}
+                        <path d="M 60 225 L 180 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 60 225 L 180 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* 2. TRIAGE -> ASSIGN */}
+                        <path d="M 180 225 L 300 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 180 225 L 300 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* 3. TRIAGE -> ESCALATE */}
+                        <path d="M 180 225 L 180 360" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 180 225 L 180 360" stroke="#ef4444" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* 4. ASSIGN -> RESOLVE */}
+                        <path d="M 300 225 L 420 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 300 225 L 420 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* 5. ESCALATE -> RESOLVE */}
+                        <path d="M 180 360 Q 300 360 420 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 180 360 Q 300 360 420 225" stroke="#b464ff" strokeWidth="2" strokeDasharray="5,5" className="pulse-path opacity-60" />
+                        {/* 6. RESOLVE -> CLOSE */}
+                        <path d="M 420 225 L 540 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 420 225 L 540 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+                        {/* Nodes */}
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-submit')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-submit' ? null : 'nexora-submit')}>
+                          <circle cx="60" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                          <text x="60" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SUBMIT</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-triage')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-triage' ? null : 'nexora-triage')}>
+                          <circle cx="180" cy="225" r="40" fill="none" stroke="#b464ff" strokeWidth="1" className="animate-ping opacity-25" />
+                          <circle cx="180" cy="225" r="34" fill="#08050e" stroke="#c084fc" strokeWidth="3" filter="url(#glow-triage-mobile)" className="transition-all duration-300 group-hover:stroke-white" />
+                          <text x="180" y="222" fill="#c084fc" fontSize="9" fontWeight="black" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace" className="group-hover:fill-white transition-colors duration-300">TRIAGE</text>
+                          <text x="180" y="232" fill="white" fontSize="7" fontWeight="bold" letterSpacing="0.03em" textAnchor="middle" fontFamily="monospace" className="opacity-70">(AI)</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-assign')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-assign' ? null : 'nexora-assign')}>
+                          <circle cx="300" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                          <text x="300" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ASSIGN</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-escalate')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-escalate' ? null : 'nexora-escalate')}>
+                          <circle cx="180" cy="360" r="28" fill="#050505" stroke="#ef4444" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:fill-red-500/10" />
+                          <text x="180" y="364" fill="#ef4444" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ESCALATE</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-resolve')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-resolve' ? null : 'nexora-resolve')}>
+                          <circle cx="420" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                          <text x="420" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">RESOLVE</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-close')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-close' ? null : 'nexora-close')}>
+                          <circle cx="540" cy="225" r="30" fill="#b464ff" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:opacity-90" />
+                          <text x="540" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">CLOSE</text>
+                        </g>
+                      </svg>
+                      
+                      {/* Telemetry info HUD box */}
+                      <div className={`absolute bottom-3 left-3 right-3 p-3 rounded-lg border bg-black/90 backdrop-blur-md transition-all duration-300 text-left ${
+                        activeNode && activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-[#b464ff]/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
+                      }`}>
+                        {activeNode && activeNode.startsWith('nexora-') && (
+                          <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                            <div className="col-span-2 border-b border-white/10 pb-1 mb-1 flex items-center justify-between">
+                              <span className="font-mono text-[#b464ff] uppercase font-bold tracking-wider">{NODE_DETAILS[activeNode].title}</span>
+                              <span className="px-1.5 py-0.2 rounded-full bg-[#b464ff]/10 text-[8px] text-[#b464ff] border border-[#b464ff]/25">{NODE_DETAILS[activeNode].status}</span>
+                            </div>
+                            <div>
+                              <span className="text-white/40 block mb-0.2">Function</span>
+                              <span className="text-white/90 leading-tight block">{NODE_DETAILS[activeNode].desc}</span>
+                            </div>
+                            <div className="pl-3 border-l border-white/10 flex flex-col justify-center">
+                              <span className="text-white/40 block mb-0.2">Telemetry</span>
+                              <span className="font-mono text-[#b464ff] text-xs">{NODE_DETAILS[activeNode].load}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-            </div>
- 
-            {/* Visual Interactive Node Graph */}
-            <div className="w-full lg:w-[50%] h-64 md:h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card overflow-x-auto md:overflow-visible">
-              <div className="absolute inset-0 project-right-panel project-right-panel-nexora -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(180, 100, 255, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
-              
-              <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
-                <defs>
-                  {/* Glowing neon shadow filter */}
-                  <filter id="glow-purple" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="8" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                  <filter id="glow-triage" x="-40%" y="-40%" width="180%" height="180%">
-                    <feGaussianBlur stdDeviation="12" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
 
-                {/* Animated Pulsing Connectors */}
-                {/* 1. SUBMIT -> TRIAGE */}
-                <path d="M 60 225 L 180 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 60 225 L 180 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* 2. TRIAGE -> ASSIGN */}
-                <path d="M 180 225 L 300 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 180 225 L 300 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* 3. TRIAGE -> ESCALATE */}
-                <path d="M 180 225 L 180 360" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 180 225 L 180 360" stroke="#ef4444" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* 4. ASSIGN -> RESOLVE */}
-                <path d="M 300 225 L 420 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 300 225 L 420 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* 5. ESCALATE -> RESOLVE */}
-                <path d="M 180 360 Q 300 360 420 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 180 360 Q 300 360 420 225" stroke="#b464ff" strokeWidth="2" fill="none" strokeDasharray="5,5" className="pulse-path opacity-60" />
-
-                {/* 6. RESOLVE -> CLOSE */}
-                <path d="M 420 225 L 540 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 420 225 L 540 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
-
-                {/* Interactive SVG Nodes */}
-                {/* NODE 1: SUBMIT */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('nexora-submit')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="60" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
-                  <text x="60" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SUBMIT</text>
-                </g>
-
-                {/* NODE 2: TRIAGE (AI CORE - Gemini 2.0) */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('nexora-triage')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  {/* Outer pulsing ring */}
-                  <circle cx="180" cy="225" r="40" fill="none" stroke="#b464ff" strokeWidth="1" className="animate-ping opacity-25" />
-                  <circle cx="180" cy="225" r="34" fill="#08050e" stroke="#c084fc" strokeWidth="3" filter="url(#glow-triage)" className="transition-all duration-300 group-hover:stroke-white" />
-                  <text x="180" y="222" fill="#c084fc" fontSize="9" fontWeight="black" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace" className="group-hover:fill-white transition-colors duration-300">TRIAGE</text>
-                  <text x="180" y="232" fill="white" fontSize="7" fontWeight="bold" letterSpacing="0.03em" textAnchor="middle" fontFamily="monospace" className="opacity-70">(AI)</text>
-                </g>
-
-                {/* NODE 3: ASSIGN */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('nexora-assign')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="300" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
-                  <text x="300" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ASSIGN</text>
-                </g>
-
-                {/* NODE 4: ESCALATE */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('nexora-escalate')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="180" cy="360" r="28" fill="#050505" stroke="#ef4444" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-red-500/10" />
-                  <text x="180" y="364" fill="#ef4444" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ESCALATE</text>
-                </g>
-
-                {/* NODE 5: RESOLVE */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('nexora-resolve')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="420" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
-                  <text x="420" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">RESOLVE</text>
-                </g>
-
-                {/* NODE 6: CLOSE */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('nexora-close')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="540" cy="225" r="30" fill="#b464ff" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:opacity-90" />
-                  <text x="540" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">CLOSE</text>
-                </g>
-              </svg>
-
-              {/* Dynamic Overlay HUD Info box */}
-              <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85 backdrop-blur-md transition-all duration-300 text-left ${
-                activeNode && activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-[#b464ff]/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
-              }`}>
-                {activeNode && activeNode.startsWith('nexora-') && (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="col-span-2 border-b border-white/10 pb-1.5 mb-1.5 flex items-center justify-between">
-                      <span className="font-mono text-[#b464ff] uppercase font-bold tracking-wider">{NODE_DETAILS[activeNode].title}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-[#b464ff]/10 text-[9px] text-[#b464ff] border border-[#b464ff]/25">{NODE_DETAILS[activeNode].status}</span>
-                    </div>
-                    <div>
-                      <span className="text-white/40 block mb-0.5">Function</span>
-                      <span className="text-white/90 text-[11px] leading-relaxed block">{NODE_DETAILS[activeNode].desc}</span>
-                    </div>
-                    <div className="pl-4 border-l border-white/10 flex flex-col justify-center">
-                      <span className="text-white/40 block mb-0.5">Telemetry</span>
-                      <span className="font-mono text-[#b464ff] text-[13px]">{NODE_DETAILS[activeNode].load}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* PANEL 2C: STRATOS PROJECT */}
-          <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#040404] border-l border-white/5 transition-all duration-700 ease-out ${
-            activeProject === 2 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
-          }`}>
-                 {/* Project Spec details */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4 max-md:max-w-full">
-              <span className="text-xs font-light uppercase tracking-[0.35em] text-amber-500 mb-3 block">
-                02 // THE BUILD // PIPELINE MACHINE
-              </span>
-              <div className="relative mb-4">
-                <div className="absolute -top-[64px] -left-[10px] font-black leading-none select-none pointer-events-none text-[8.5rem]" style={{ color: 'rgba(255,255,255,0.012)', fontFamily: 'var(--font-body)', fontWeight: 900 }}>03</div>
-                <h3 
-                  className="text-5xl md:text-7xl font-light tracking-tight mb-0 uppercase project-title-stratos relative z-10" 
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  STRATOS
-                </h3>
-              </div>
-              
-              {/* Story beat tagline */}
-              <p className="text-amber-500 font-mono text-xs uppercase tracking-wider mb-6">
-                "Not every problem needs an agent. Sometimes you need a machine."
-              </p>
-              
-              <p 
-                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
-                style={{ fontFamily: 'var(--font-body)' }}
+              {/* Slide 3: STRATOS */}
+              <div 
+                className="min-w-full w-full flex-shrink-0 px-1 pb-4 flex flex-col gap-4 text-left transition-all duration-700 ease-out"
+                style={{
+                  transform: `translateX(-${activeProject * 100}%)`,
+                  transition: 'transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  willChange: 'transform',
+                }}
               >
-                A highly-distributed web scraping and data extraction infrastructure. Operates a Redis-backed queue crawler and a universal LLM-assisted parsing agent. Built for production-grade scraping pipelines that require rigorous data guarantees, dead-letter queue safety, and multiple format outputs.
-              </p>
-              
-              {/* Tech Tags */}
-              <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
-                activeProject === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}>
-                {['Python', 'FastAPI', 'asyncio', 'Redis', 'PostgreSQL', 'Elasticsearch', 'Playwright', 'Groq', 'Docker', 'Pandas', 'Selectolax'].map(tag => (
-                  <span key={tag} className="tech-pill-stratos whitespace-nowrap flex-shrink-0">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+                {/* STRATOS specs details */}
+                <p className="text-xs font-light uppercase tracking-[0.35em] text-amber-500">
+                  02 // THE BUILD // PIPELINE MACHINE
+                </p>
+                
+                <h2 className="text-5xl font-light tracking-tight uppercase text-white font-body" style={{ fontWeight: 300 }}>
+                  STRATOS
+                </h2>
 
-              {/* GitHub Link Button */}
-              <div className="mb-8 max-md:order-4 md:order-none max-md:w-full">
+                <p className="text-amber-500 font-mono text-xs uppercase tracking-wider">
+                  "Not every problem needs an agent. Sometimes you need a machine."
+                </p>
+
+                <p className="text-sm leading-relaxed text-white/70 font-light font-body">
+                  A highly-distributed web scraping and data extraction infrastructure. Operates a Redis-backed queue crawler and a universal LLM-assisted parsing agent. Built for production-grade scraping pipelines that require rigorous data guarantees, dead-letter queue safety, and multiple format outputs.
+                </p>
+
+                {/* GitHub button — in flow, above tags */}
                 <a 
                   href="https://github.com/GaneshBamalwa/stratos" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="github-project-btn github-btn-stratos pointer-events-auto max-md:w-full max-md:justify-center"
+                  className="github-project-btn github-btn-stratos pointer-events-auto w-fit inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-sm text-white"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
                   </svg>
                   <span>GitHub</span>
                 </a>
-              </div>
- 
-              {/* Interaction instruction */}
-              <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-amber uppercase tracking-wider select-none max-md:order-6 md:order-none">
-                <span>&gt; Hover machine components to inspect telemetry.</span>
-                <span className="terminal-cursor font-bold">_</span>
-              </div>
-            </div>
- 
-            {/* Industrial SVG architecture diagram */}
-            <div className="w-full lg:w-[50%] h-64 md:h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card overflow-x-auto md:overflow-visible">
-              <div className="absolute inset-0 project-right-panel project-right-panel-stratos -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
-              
-              <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
-                <defs>
-                  {/* Glowing amber shadow filter */}
-                  <filter id="glow-amber" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="6" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
 
-                {/* Animated Pulsing Connectors */}
-                {/* 1. Queue -> Worker */}
-                <path d="M 80 225 L 200 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 80 225 L 200 225" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+                {/* Tags — wrapping */}
+                <div className="flex flex-wrap gap-2 w-full">
+                  {['Python', 'FastAPI', 'asyncio', 'Redis', 'PostgreSQL', 'Elasticsearch', 'Playwright', 'Groq', 'Docker', 'Pandas', 'Selectolax'].map(tag => (
+                    <span key={tag} className="tech-pill-stratos px-3 py-1 text-xs rounded-full border border-white/20 text-white whitespace-nowrap">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
 
-                {/* 2. Worker -> Pipeline */}
-                <path d="M 200 225 L 320 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 200 225 L 320 225" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+                {/* Hint text */}
+                <p className="text-[10px] font-mono hint-terminal-prompt-amber uppercase tracking-wider select-none">
+                  &gt; Hover machine components to inspect telemetry.
+                </p>
 
-                {/* 3. Pipeline -> Persistence */}
-                <path d="M 320 225 L 460 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 320 225 L 460 135" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
-
-                {/* 4. Pipeline -> Outputs */}
-                <path d="M 320 225 L 460 315" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
-                <path d="M 320 225 L 460 315" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
-
-                {/* Interactive SVG Nodes */}
-                {/* NODE 1: Queue */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('stratos-queue')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2.5" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
-                  <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">QUEUE</text>
-                </g>
-
-                {/* NODE 2: Worker */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('stratos-worker')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="200" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
-                  <text x="200" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">WORKERS</text>
-                </g>
-
-                {/* NODE 3: Pipeline */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('stratos-pipeline')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="320" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
-                  <text x="320" y="229" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PIPELINE</text>
-                </g>
-
-                {/* NODE 4: Persistence */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('stratos-persistence')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="460" cy="135" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
-                  <text x="460" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">STORES</text>
-                </g>
-
-                {/* NODE 5: Outputs */}
-                <g 
-                  className="cursor-pointer group" 
-                  onMouseEnter={() => setActiveNode('stratos-outputs')} 
-                  onMouseLeave={() => setActiveNode(null)}
-                >
-                  <circle cx="460" cy="315" r="34" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:opacity-90" />
-                  <text x="460" y="319" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DELIVER</text>
-                </g>
-              </svg>
-
-              {/* Dynamic Overlay HUD Info box */}
-              <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85 backdrop-blur-md transition-all duration-300 text-left ${
-                activeNode && activeNode.startsWith('stratos-') ? 'opacity-100 scale-100 border-amber-500/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
-              }`}>
-                {activeNode && activeNode.startsWith('stratos-') && (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="col-span-2 border-b border-white/10 pb-1.5 mb-1.5 flex items-center justify-between">
-                      <span className="font-mono text-amber-500 uppercase font-bold tracking-wider">{NODE_DETAILS[activeNode].title}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-[9px] text-amber-500 border border-amber-500/25">{NODE_DETAILS[activeNode].status}</span>
-                    </div>
-                    <div>
-                      <span className="text-white/40 block mb-0.5">Function</span>
-                      <span className="text-white/90 text-[11px] leading-relaxed block">{NODE_DETAILS[activeNode].desc}</span>
-                    </div>
-                    <div className="pl-4 border-l border-white/10 flex flex-col justify-center">
-                      <span className="text-white/40 block mb-0.5">Telemetry</span>
-                      <span className="font-mono text-amber-500 text-[13px]">{NODE_DETAILS[activeNode].load}</span>
-                    </div>
-                  </div>
-                )}
+                {/* Diagram box */}
+                <div className={`relative w-full rounded-lg overflow-hidden border border-white/5 bg-black/60 backdrop-blur-sm p-4 transition-all duration-300 ${diagramCollapsed ? 'h-14' : 'h-[260px]'}`}>
+                  <button 
+                    onClick={() => setDiagramCollapsed(!diagramCollapsed)}
+                    className="absolute top-2 right-2 z-30 text-white/40 hover:text-white transition-colors text-xs font-mono px-2 py-0.5 rounded border border-white/10 bg-black/40"
+                  >
+                    {diagramCollapsed ? '+' : '—'}
+                  </button>
+                  
+                  {!diagramCollapsed && (
+                    <>
+                      <div className="absolute inset-0 project-right-panel project-right-panel-stratos -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
+                      <svg viewBox="0 0 600 450" className="w-full h-full select-none max-w-md mx-auto" style={{ overflow: 'visible' }}>
+                        <defs>
+                          <filter id="glow-amber-mobile" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="6" result="blur" />
+                            <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                          </filter>
+                        </defs>
+                        {/* 1. Queue -> Worker */}
+                        <path d="M 80 225 L 200 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 80 225 L 200 225" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+                        {/* 2. Worker -> Pipeline */}
+                        <path d="M 200 225 L 320 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 200 225 L 320 225" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+                        {/* 3. Pipeline -> Persistence */}
+                        <path d="M 320 225 L 460 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 320 225 L 460 135" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+                        {/* 4. Pipeline -> Outputs */}
+                        <path d="M 320 225 L 460 315" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                        <path d="M 320 225 L 460 315" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+                        {/* Nodes */}
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-queue')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-queue' ? null : 'stratos-queue')}>
+                          <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2.5" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                          <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">QUEUE</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-worker')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-worker' ? null : 'stratos-worker')}>
+                          <circle cx="200" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                          <text x="200" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">WORKERS</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-pipeline')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-pipeline' ? null : 'stratos-pipeline')}>
+                          <circle cx="320" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                          <text x="320" y="229" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PIPELINE</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-persistence')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-persistence' ? null : 'stratos-persistence')}>
+                          <circle cx="460" cy="135" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                          <text x="460" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">STORES</text>
+                        </g>
+                        <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-outputs')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-outputs' ? null : 'stratos-outputs')}>
+                          <circle cx="460" cy="315" r="34" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:opacity-90" />
+                          <text x="460" y="319" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DELIVER</text>
+                        </g>
+                      </svg>
+                      
+                      {/* Telemetry info HUD box */}
+                      <div className={`absolute bottom-3 left-3 right-3 p-3 rounded-lg border bg-black/90 backdrop-blur-md transition-all duration-300 text-left ${
+                        activeNode && activeNode.startsWith('stratos-') ? 'opacity-100 scale-100 border-amber-500/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
+                      }`}>
+                        {activeNode && activeNode.startsWith('stratos-') && (
+                          <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                            <div className="col-span-2 border-b border-white/10 pb-1 mb-1 flex items-center justify-between">
+                              <span className="font-mono text-amber-500 uppercase font-bold tracking-wider">{NODE_DETAILS[activeNode].title}</span>
+                              <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-[9px] text-amber-500 border border-amber-500/25">{NODE_DETAILS[activeNode].status}</span>
+                            </div>
+                            <div>
+                              <span className="text-white/40 block mb-0.2">Function</span>
+                              <span className="text-white/90 leading-tight block">{NODE_DETAILS[activeNode].desc}</span>
+                            </div>
+                            <div className="pl-3 border-l border-white/10 flex flex-col justify-center">
+                              <span className="text-white/40 block mb-0.2">Telemetry</span>
+                              <span className="font-mono text-amber-500 text-xs">{NODE_DETAILS[activeNode].load}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-        </div>
+          {/* Navigation Arrows + Dots — outside slide track, below slides */}
+          <div className="flex items-center justify-between px-2 mt-6">
+            <button
+              onClick={goPrev}
+              onTouchEnd={goPrev}
+              disabled={activeProject === 0}
+              style={{ touchAction: 'none' }}
+              className="w-11 h-11 rounded-full border border-white/20 bg-black/40 flex items-center justify-center text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-300 active:scale-95"
+            >
+              ←
+            </button>
 
-        <div className="absolute inset-0 z-40 pointer-events-none md:hidden">
-          <button
-            onClick={() => handleNavigateProject(activeProject - 1)}
-            disabled={activeProject === 0}
-            className={`absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full border border-white/10 bg-black/75 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-300 focus:outline-none select-none active:scale-95 ${
-              activeProject === 0 ? 'opacity-20 pointer-events-none' : 'opacity-90'
-            }`}
-            title="Previous Project"
-            aria-label="Previous Project"
+            {/* Dot indicators */}
+            <div className="flex gap-2">
+              {[0, 1, 2].map(i => (
+                <button
+                  key={i}
+                  onClick={() => setActiveProject(i)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${activeProject === i ? 'bg-white scale-125' : 'bg-white/30'}`}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={goNext}
+              onTouchEnd={goNext}
+              disabled={activeProject === 2}
+              style={{ touchAction: 'none' }}
+              className="w-11 h-11 rounded-full border border-white/20 bg-black/40 flex items-center justify-center text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-300 active:scale-95"
+            >
+              →
+            </button>
+          </div>
+
+          {/* Swipe Hint */}
+          <motion.p
+            className="text-center text-white/25 text-[10px] font-mono tracking-widest mt-4 pointer-events-none"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: showSwipeHint ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-
-          <button
-            onClick={() => handleNavigateProject(activeProject + 1)}
-            disabled={activeProject === 2}
-            className={`absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full border border-white/10 bg-black/75 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-300 focus:outline-none select-none active:scale-95 ${
-              activeProject === 2 ? 'opacity-20 pointer-events-none' : 'opacity-90'
-            }`}
-            title="Next Project"
-            aria-label="Next Project"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
-        </div>
-
-        <motion.p
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs tracking-widest text-center md:hidden pointer-events-none"
-          initial={{ opacity: 1 }}
-          animate={{ opacity: showSwipeHint ? 1 : 0 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          aria-hidden
+            ← SWIPE TO EXPLORE PROJECTS →
+          </motion.p>
+        </section>
+      ) : (
+        <section 
+          id="chapter-projects" 
+          ref={buildRef}
+          className="relative w-full h-screen bg-[#030303]"
+          style={{ scrollSnapAlign: 'start' }}
         >
-          &larr; SWIPE TO EXPLORE &rarr;
-        </motion.p>
-
-        {/* Fixed controls layer pinned to viewport while scrolling horizontally */}
-        <div className="absolute inset-0 pointer-events-none z-30 hidden md:block">
-          {/* Arrow Left — hugged to the very edge so it never overlaps content */}
-          <button
-            onClick={() => handleNavigateProject(activeProject - 1)}
-            disabled={activeProject === 0}
-            className={`absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
-              activeProject === 0 ? 'opacity-10 pointer-events-none' : 'opacity-70 hover:opacity-100'
-            }`}
-            title="Previous Project"
+          <div 
+            ref={horizontalRef}
+            className="sticky top-0 h-screen w-[300vw] flex flex-row items-center overflow-hidden"
+            onTouchStart={handleProjectTouchStart}
+            onTouchEnd={handleProjectTouchEnd}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
+            
+            {/* PANEL 2A: ATLAS PROJECT (Node Graph reveal) */}
+            <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 transition-all duration-700 ease-out ${
+              activeProject === 0 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
+            }`}>
+                   {/* Project Spec details */}
+              <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4 max-md:max-w-full">
+                <span className="text-xs font-light uppercase tracking-[0.35em] text-accent mb-3 block">
+                  02 // THE BUILD
+                </span>
+                <div className="relative mb-6">
+                  <div className="absolute -top-[64px] -left-[10px] font-black leading-none select-none pointer-events-none text-[8.5rem]" style={{ color: 'rgba(255,255,255,0.012)', fontFamily: 'var(--font-body)', fontWeight: 900 }}>01</div>
+                  <h3 
+                    className="text-5xl md:text-7xl font-light tracking-tight mb-0 uppercase project-title-atlas relative z-10" 
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    ATLAS
+                  </h3>
+                </div>
+                <p className="text-accent font-mono text-xs uppercase tracking-wider mb-2">
+                  "Not a chatbot. A control plane."
+                </p>
+                <p className="text-[#C9A961] font-mono text-[10px] uppercase tracking-wider mb-5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9A961] animate-pulse" />
+                  Won 1st place at Samsung PRISM out of 150+ competing teams.
+                </p>
+                <p 
+                  className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  A distributed multi-agent AI orchestration platform. Built to take natural language requests, decompose them into structured multi-step workflows, and execute them across specialized services — with every reasoning step visible in real time.
+                </p>
 
-          {/* Arrow Right — hugged to the very edge so it never overlaps content */}
-          <button
-            onClick={() => handleNavigateProject(activeProject + 1)}
-            disabled={activeProject === 2}
-            className={`absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
-              activeProject === 2 ? 'opacity-10 pointer-events-none' : 'opacity-70 hover:opacity-100'
-            }`}
-            title="Next Project"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
+                {/* GitHub Link Button — its own row above tags */}
+                <div className="mb-4 max-md:order-4 md:order-none max-md:w-full">
+                  <a 
+                    href="https://github.com/GaneshBamalwa/atlas" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="github-project-btn github-btn-atlas pointer-events-auto max-md:w-full max-md:justify-center"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
+                    </svg>
+                    <span>GitHub</span>
+                  </a>
+                </div>
 
-          {/* Dots Indicator */}
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 select-none">
-            {[0, 1, 2].map((idx) => (
-              <button
-                key={idx}
-                onClick={() => handleNavigateProject(idx)}
-                className={`w-3.5 h-3.5 rounded-full border transition-all duration-500 cursor-pointer pointer-events-auto flex items-center justify-center focus:outline-none ${
-                  activeProject === idx 
-                    ? 'bg-accent border-accent scale-125' 
-                    : 'bg-white/10 border-white/20 hover:bg-white/25 hover:border-white/30'
-                }`}
-                title={`View Project 0${idx + 1}`}
-              />
-            ))}
+                {/* Tech Tags — wrapping row below GitHub button */}
+                <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
+                  activeProject === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}>
+                  {['Python', 'FastAPI', 'LangChain', 'React', 'TypeScript', 'Redis', 'ChromaDB', 'Docker', 'ReactFlow', 'Google APIs', 'MCP'].map(tag => (
+                    <span key={tag} className="tech-pill-atlas whitespace-nowrap flex-shrink-0">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+   
+                {/* Interaction instruction */}
+                <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-green uppercase tracking-wider select-none max-md:order-6 md:order-none">
+                  <span>&gt; Hover nodes on the graph to inspect runtime states.</span>
+                  <span className="terminal-cursor font-bold">_</span>
+                </div>
+              </div>
+   
+              {/* Visual Interactive Node Graph */}
+              <div className="w-full lg:w-[50%] h-64 md:h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card overflow-x-auto md:overflow-visible">
+                <div className="absolute inset-0 project-right-panel project-right-panel-atlas -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(232, 232, 232, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
+                
+                <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
+                  <defs>
+                    {/* Glowing neon shadow filter */}
+                    <filter id="glow-platinum" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="6" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+  
+                  {/* Animated Pulsing Connectors */}
+                  {/* 1. Input -> Planner */}
+                  <path d="M 80 225 L 200 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 80 225 L 200 135" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* 2. Input -> Swarm */}
+                  <path d="M 80 225 L 200 315" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 80 225 L 200 315" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* 3. Planner -> Guard */}
+                  <path d="M 200 135 L 340 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 200 135 L 340 135" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* 4. Swarm -> Sandbox */}
+                  <path d="M 200 315 L 340 315" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 200 315 L 340 315" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* 5. Guard -> Output */}
+                  <path d="M 340 135 L 500 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 340 135 L 500 225" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* 6. Sandbox -> Output */}
+                  <path d="M 340 315 L 500 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 340 315 L 500 225" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* Interactive SVG Nodes */}
+                  {/* NODE 1: Ingestion */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('input')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2.5" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">INGEST</text>
+                  </g>
+  
+                  {/* NODE 2: Planner */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('planner')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="200" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <text x="200" y="139" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PLANNER</text>
+                  </g>
+  
+                  {/* NODE 3: Swarm */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('swarm')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="200" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <text x="200" y="319" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SWARM</text>
+                  </g>
+  
+                  {/* NODE 4: Guard */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('guard')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="340" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <text x="340" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">GUARD</text>
+                  </g>
+  
+                  {/* NODE 5: Sandbox */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('aegis')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="340" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <text x="340" y="319" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SANDBOX</text>
+                  </g>
+  
+                  {/* NODE 6: Output */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('output')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="500" cy="225" r="34" fill="#E8E8E8" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:opacity-90" />
+                    <text x="500" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DEPLOY</text>
+                  </g>
+                </svg>
+  
+                {/* Dynamic Overlay HUD Info box */}
+                <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85 backdrop-blur-md transition-all duration-300 text-left ${
+                  activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-accent/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
+                }`}>
+                  {activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') && (
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="col-span-2 border-b border-white/10 pb-1.5 mb-1.5 flex items-center justify-between">
+                        <span className="font-mono text-accent uppercase font-bold tracking-wider">{NODE_DETAILS[activeNode].title}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-accent/10 text-[9px] text-accent border border-accent/25">{NODE_DETAILS[activeNode].status}</span>
+                      </div>
+                      <div>
+                        <span className="text-white/40 block mb-0.5">Function</span>
+                        <span className="text-white/90 text-[11px] leading-relaxed block">{NODE_DETAILS[activeNode].desc}</span>
+                      </div>
+                      <div className="pl-4 border-l border-white/10 flex flex-col justify-center">
+                        <span className="text-white/40 block mb-0.5">Telemetry</span>
+                        <span className="font-mono text-accent text-[13px]">{NODE_DETAILS[activeNode].load}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+  
+            {/* PANEL 2B: NEXORA PROJECT */}
+            <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#060606] transition-all duration-700 ease-out ${
+              activeProject === 1 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
+            }`}>
+                   {/* Description */}
+              <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4 max-md:max-w-full">
+                <span className="text-xs font-light uppercase tracking-[0.35em] text-[#b464ff] mb-3 block">
+                  02 // THE BUILD
+                </span>
+                <div className="relative mb-6">
+                  <div className="absolute -top-[64px] -left-[10px] font-black leading-none select-none pointer-events-none text-[8.5rem]" style={{ color: 'rgba(255,255,255,0.012)', fontFamily: 'var(--font-body)', fontWeight: 900 }}>02</div>
+                  <h3 
+                    className="text-5xl md:text-7xl font-light tracking-tight mb-0 uppercase project-title-nexora relative z-10" 
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    NEXORA
+                  </h3>
+                </div>
+                <p className="text-[#b464ff] font-mono text-xs uppercase tracking-wider mb-6">
+                  "Built to be secure, scalable, and actually nice to use."
+                </p>
+                <p 
+                  className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  A production-ready AI-powered customer support platform. Three user tiers, 25+ REST endpoints, a full ticket lifecycle, and an AI engine that triages requests and assists agents in real time.
+                </p>
+                
+                <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
+                  activeProject === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}>
+                  {['FastAPI', 'React 19', 'Gemini 2.0', 'MySQL', 'SQLite', 'JWT', 'bcrypt', 'Three.js', 'Framer Motion', 'Tailwind CSS', 'Recharts'].map(tag => (
+                    <span key={tag} className="tech-pill-nexora whitespace-nowrap flex-shrink-0">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+  
+                {/* GitHub Link Button */}
+                <div className="mb-8 flex flex-col gap-4 max-md:order-4 md:order-none max-md:w-full">
+                  <a 
+                    href="https://github.com/GaneshBamalwa/nexora" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="github-project-btn github-btn-nexora w-max pointer-events-auto max-md:w-full max-md:justify-center"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
+                    </svg>
+                    <span>GitHub</span>
+                  </a>
+                  
+                  {/* Interaction instruction */}
+                  <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-purple uppercase tracking-wider select-none max-md:order-6 md:order-none">
+                    <span>&gt; Hover nodes on the graph to inspect support workflow.</span>
+                    <span className="terminal-cursor font-bold">_</span>
+                  </div>
+                </div>
+              </div>
+   
+              {/* Visual Interactive Node Graph */}
+              <div className="w-full lg:w-[50%] h-64 md:h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card overflow-x-auto md:overflow-visible">
+                <div className="absolute inset-0 project-right-panel project-right-panel-nexora -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(180, 100, 255, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
+                
+                <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
+                  <defs>
+                    {/* Glowing neon shadow filter */}
+                    <filter id="glow-purple" x="-30%" y="-30%" width="160%" height="160%">
+                      <feGaussianBlur stdDeviation="8" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                    <filter id="glow-triage" x="-40%" y="-40%" width="180%" height="180%">
+                      <feGaussianBlur stdDeviation="12" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+  
+                  {/* Animated Pulsing Connectors */}
+                  {/* 1. SUBMIT -> TRIAGE */}
+                  <path d="M 60 225 L 180 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 60 225 L 180 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* 2. TRIAGE -> ASSIGN */}
+                  <path d="M 180 225 L 300 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 180 225 L 300 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* 3. TRIAGE -> ESCALATE */}
+                  <path d="M 180 225 L 180 360" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 180 225 L 180 360" stroke="#ef4444" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* 4. ASSIGN -> RESOLVE */}
+                  <path d="M 300 225 L 420 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 300 225 L 420 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* 5. ESCALATE -> RESOLVE */}
+                  <path d="M 180 360 Q 300 360 420 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 180 360 Q 300 360 420 225" stroke="#b464ff" strokeWidth="2" strokeDasharray="5,5" className="pulse-path opacity-60" />
+  
+                  {/* 6. RESOLVE -> CLOSE */}
+                  <path d="M 420 225 L 540 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 420 225 L 540 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
+  
+                  {/* Interactive SVG Nodes */}
+                  {/* NODE 1: SUBMIT */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('nexora-submit')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="60" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                    <text x="60" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SUBMIT</text>
+                  </g>
+  
+                  {/* NODE 2: TRIAGE (AI CORE - Gemini 2.0) */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('nexora-triage')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    {/* Outer pulsing ring */}
+                    <circle cx="180" cy="225" r="40" fill="none" stroke="#b464ff" strokeWidth="1" className="animate-ping opacity-25" />
+                    <circle cx="180" cy="225" r="34" fill="#08050e" stroke="#c084fc" strokeWidth="3" filter="url(#glow-triage)" className="transition-all duration-300 group-hover:stroke-white" />
+                    <text x="180" y="222" fill="#c084fc" fontSize="9" fontWeight="black" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace" className="group-hover:fill-white transition-colors duration-300">TRIAGE</text>
+                    <text x="180" y="232" fill="white" fontSize="7" fontWeight="bold" letterSpacing="0.03em" textAnchor="middle" fontFamily="monospace" className="opacity-70">(AI)</text>
+                  </g>
+  
+                  {/* NODE 3: ASSIGN */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('nexora-assign')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="300" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                    <text x="300" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ASSIGN</text>
+                  </g>
+  
+                  {/* NODE 4: ESCALATE */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('nexora-escalate')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="180" cy="360" r="28" fill="#050505" stroke="#ef4444" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-red-500/10" />
+                    <text x="180" y="364" fill="#ef4444" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ESCALATE</text>
+                  </g>
+  
+                  {/* NODE 5: RESOLVE */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('nexora-resolve')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="420" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                    <text x="420" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">RESOLVE</text>
+                  </g>
+  
+                  {/* NODE 6: CLOSE */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('nexora-close')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="540" cy="225" r="30" fill="#b464ff" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:opacity-90" />
+                    <text x="540" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">CLOSE</text>
+                  </g>
+                </svg>
+  
+                {/* Dynamic Overlay HUD Info box */}
+                <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85 backdrop-blur-md transition-all duration-300 text-left ${
+                  activeNode && activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-[#b464ff]/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
+                }`}>
+                  {activeNode && activeNode.startsWith('nexora-') && (
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="col-span-2 border-b border-white/10 pb-1.5 mb-1.5 flex items-center justify-between">
+                        <span className="font-mono text-[#b464ff] uppercase font-bold tracking-wider">{NODE_DETAILS[activeNode].title}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-[#b464ff]/10 text-[9px] text-[#b464ff] border border-[#b464ff]/25">{NODE_DETAILS[activeNode].status}</span>
+                      </div>
+                      <div>
+                        <span className="text-white/40 block mb-0.5">Function</span>
+                        <span className="text-white/90 text-[11px] leading-relaxed block">{NODE_DETAILS[activeNode].desc}</span>
+                      </div>
+                      <div className="pl-4 border-l border-white/10 flex flex-col justify-center">
+                        <span className="text-white/40 block mb-0.5">Telemetry</span>
+                        <span className="font-mono text-[#b464ff] text-[13px]">{NODE_DETAILS[activeNode].load}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+  
+            {/* PANEL 2C: STRATOS PROJECT */}
+            <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#040404] border-l border-white/5 transition-all duration-700 ease-out ${
+              activeProject === 2 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
+            }`}>
+                   {/* Project Spec details */}
+              <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4 max-md:max-w-full">
+                <span className="text-xs font-light uppercase tracking-[0.35em] text-amber-500 mb-3 block">
+                  02 // THE BUILD // PIPELINE MACHINE
+                </span>
+                <div className="relative mb-4">
+                  <div className="absolute -top-[64px] -left-[10px] font-black leading-none select-none pointer-events-none text-[8.5rem]" style={{ color: 'rgba(255,255,255,0.012)', fontFamily: 'var(--font-body)', fontWeight: 900 }}>03</div>
+                  <h3 
+                    className="text-5xl md:text-7xl font-light tracking-tight mb-0 uppercase project-title-stratos relative z-10" 
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    STRATOS
+                  </h3>
+                </div>
+                
+                {/* Story beat tagline */}
+                <p className="text-amber-500 font-mono text-xs uppercase tracking-wider mb-6">
+                  "Not every problem needs an agent. Sometimes you need a machine."
+                </p>
+                
+                <p 
+                  className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  A highly-distributed web scraping and data extraction infrastructure. Operates a Redis-backed queue crawler and a universal LLM-assisted parsing agent. Built for production-grade scraping pipelines that require rigorous data guarantees, dead-letter queue safety, and multiple format outputs.
+                </p>
+                
+                {/* Tech Tags */}
+                <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
+                  activeProject === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}>
+                  {['Python', 'FastAPI', 'asyncio', 'Redis', 'PostgreSQL', 'Elasticsearch', 'Playwright', 'Groq', 'Docker', 'Pandas', 'Selectolax'].map(tag => (
+                    <span key={tag} className="tech-pill-stratos whitespace-nowrap flex-shrink-0">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+  
+                {/* GitHub Link Button */}
+                <div className="mb-8 max-md:order-4 md:order-none max-md:w-full">
+                  <a 
+                    href="https://github.com/GaneshBamalwa/stratos" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="github-project-btn github-btn-stratos pointer-events-auto max-md:w-full max-md:justify-center"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
+                    </svg>
+                    <span>GitHub</span>
+                  </a>
+                </div>
+   
+                {/* Interaction instruction */}
+                <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-amber uppercase tracking-wider select-none max-md:order-6 md:order-none">
+                  <span>&gt; Hover machine components to inspect telemetry.</span>
+                  <span className="terminal-cursor font-bold">_</span>
+                </div>
+              </div>
+   
+              {/* Industrial SVG architecture diagram */}
+              <div className="w-full lg:w-[50%] h-64 md:h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card overflow-x-auto md:overflow-visible">
+                <div className="absolute inset-0 project-right-panel project-right-panel-stratos -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
+                
+                <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
+                  <defs>
+                    {/* Glowing amber shadow filter */}
+                    <filter id="glow-amber" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="6" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+  
+                  {/* Animated Pulsing Connectors */}
+                  {/* 1. Queue -> Worker */}
+                  <path d="M 80 225 L 200 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 80 225 L 200 225" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+  
+                  {/* 2. Worker -> Pipeline */}
+                  <path d="M 200 225 L 320 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 200 225 L 320 225" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+  
+                  {/* 3. Pipeline -> Persistence */}
+                  <path d="M 320 225 L 460 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 320 225 L 460 135" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+  
+                  {/* 4. Pipeline -> Outputs */}
+                  <path d="M 320 225 L 460 315" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
+                  <path d="M 320 225 L 460 315" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
+  
+                  {/* Interactive SVG Nodes */}
+                  {/* NODE 1: Queue */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('stratos-queue')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2.5" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                    <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">QUEUE</text>
+                  </g>
+  
+                  {/* NODE 2: Worker */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('stratos-worker')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="200" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                    <text x="200" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">WORKERS</text>
+                  </g>
+  
+                  {/* NODE 3: Pipeline */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('stratos-pipeline')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="320" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                    <text x="320" y="229" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PIPELINE</text>
+                  </g>
+  
+                  {/* NODE 4: Persistence */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('stratos-persistence')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="460" cy="135" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                    <text x="460" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">STORES</text>
+                  </g>
+  
+                  {/* NODE 5: Outputs */}
+                  <g 
+                    className="cursor-pointer group" 
+                    onMouseEnter={() => setActiveNode('stratos-outputs')} 
+                    onMouseLeave={() => setActiveNode(null)}
+                  >
+                    <circle cx="460" cy="315" r="34" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:opacity-90" />
+                    <text x="460" y="319" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DELIVER</text>
+                  </g>
+                </svg>
+  
+                {/* Dynamic Overlay HUD Info box */}
+                <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85 backdrop-blur-md transition-all duration-300 text-left ${
+                  activeNode && activeNode.startsWith('stratos-') ? 'opacity-100 scale-100 border-amber-500/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
+                }`}>
+                  {activeNode && activeNode.startsWith('stratos-') && (
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="col-span-2 border-b border-white/10 pb-1.5 mb-1.5 flex items-center justify-between">
+                        <span className="font-mono text-amber-500 uppercase font-bold tracking-wider">{NODE_DETAILS[activeNode].title}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-[9px] text-amber-500 border border-amber-500/25">{NODE_DETAILS[activeNode].status}</span>
+                      </div>
+                      <div>
+                        <span className="text-white/40 block mb-0.5">Function</span>
+                        <span className="text-white/90 text-[11px] leading-relaxed block">{NODE_DETAILS[activeNode].desc}</span>
+                      </div>
+                      <div className="pl-4 border-l border-white/10 flex flex-col justify-center">
+                        <span className="text-white/40 block mb-0.5">Telemetry</span>
+                        <span className="font-mono text-amber-500 text-[13px]">{NODE_DETAILS[activeNode].load}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+  
           </div>
-        </div>
-      </section>
-
-
-      {/* CHAPTER 3 — THE ARSENAL (lazy-loaded) */}
+  
+          {/* Fixed controls layer pinned to viewport while scrolling horizontally */}
+          <div className="absolute inset-0 pointer-events-none z-30 hidden md:block">
+            {/* Arrow Left — hugged to the very edge so it never overlaps content */}
+            <button
+              onClick={() => handleNavigateProject(activeProject - 1)}
+              disabled={activeProject === 0}
+              className={`absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
+                activeProject === 0 ? 'opacity-10 pointer-events-none' : 'opacity-70 hover:opacity-100'
+              }`}
+              title="Previous Project"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+  
+            {/* Arrow Right — hugged to the very edge so it never overlaps content */}
+            <button
+              onClick={() => handleNavigateProject(activeProject + 1)}
+              disabled={activeProject === 2}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
+                activeProject === 2 ? 'opacity-10 pointer-events-none' : 'opacity-70 hover:opacity-100'
+              }`}
+              title="Next Project"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+  
+            {/* Dots Indicator */}
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 select-none">
+              {[0, 1, 2].map((idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleNavigateProject(idx)}
+                  className={`w-3.5 h-3.5 rounded-full border transition-all duration-500 cursor-pointer pointer-events-auto flex items-center justify-center focus:outline-none ${
+                    activeProject === idx 
+                      ? 'bg-accent border-accent scale-125' 
+                      : 'bg-white/10 border-white/20 hover:bg-white/25 hover:border-white/30'
+                  }`}
+                  title={`View Project 0${idx + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}{/* CHAPTER 3 — THE ARSENAL (lazy-loaded) */}
       <Suspense fallback={<div className="h-screen" />}>
         <ArsenalSection ref={arsenalRef} />
       </Suspense>
