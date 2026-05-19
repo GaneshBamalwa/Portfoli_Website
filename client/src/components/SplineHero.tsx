@@ -15,6 +15,14 @@ function SplineHeroComponent() {
   const tier = useDeviceTier();
 
   useEffect(() => {
+    if (tier === 'low') {
+      setLoaded(true);
+      controls.start({ opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0 } });
+      overlayControls.start({ opacity: 0.9, transition: { duration: 0 } });
+    }
+  }, [tier, setLoaded, controls, overlayControls]);
+
+  useEffect(() => {
     // Start ambient overlays fade-in (nearly black -> subtle glow & grain)
     overlayControls.start({ opacity: 1, transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] } });
 
@@ -110,7 +118,20 @@ function SplineHeroComponent() {
             className="w-full h-full"
             style={tier === 'low' ? { pointerEvents: 'none' } : undefined}
           >
-            <Spline scene="https://prod.spline.design/KRXODn3OlcL24ra0/scene.splinecode" onLoad={handleSplineLoad} />
+            {tier === 'low' ? (
+              <img
+                src="/robot-static.png"
+                alt="Robot"
+                className="w-full h-full object-cover select-none pointer-events-none"
+                style={{
+                  objectPosition: 'center 30%',
+                  opacity: 0.85,
+                  mixBlendMode: 'lighten'
+                }}
+              />
+            ) : (
+              <Spline scene="https://prod.spline.design/KRXODn3OlcL24ra0/scene.splinecode" onLoad={handleSplineLoad} />
+            )}
           </div>
 
           {/* Interactive "Talk to Réne" badge masking the Spline watermark */}

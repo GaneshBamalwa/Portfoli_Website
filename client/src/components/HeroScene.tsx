@@ -256,7 +256,7 @@ function HeroSceneComponent() {
   if (tier === 'low') {
     return (
       <img
-        src="/robot-static.webp"
+        src="/robot-static.png"
         alt=""
         loading="eager"
         // @ts-ignore
