@@ -1,12 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import { useAtom } from 'jotai';
 import { activeChapterAtom, subSceneAtom } from '@/lib/atoms';
 
-export function ParticleCanvas() {
+const DESKTOP_NODE_COUNT = 100;
+const MOBILE_NODE_RATIO = 0.35;
+const DESKTOP_CONNECT_SQ = 16900;
+const MOBILE_CONNECT_SQ = 6084;
+
+function ParticleCanvasComponent() {
   const [activeChapter] = useAtom(activeChapterAtom);
   const [subScene] = useAtom(subSceneAtom);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+  const isMobileRef = useRef(
+    typeof window !== 'undefined' && window.innerWidth < 768
+  );
+
   const activeChapterRef = useRef(activeChapter);
   const subSceneRef = useRef(subScene);
 
@@ -25,6 +33,7 @@ export function ParticleCanvas() {
     if (!ctx) return;
 
     let animationFrameId: number;
+    let frameCounter = 0;
     let particles: Array<{
       x: number;
       y: number;
@@ -35,11 +44,17 @@ export function ParticleCanvas() {
       parallaxFactor: number;
     }> = [];
 
-    const currentAccentColor = { r: 232, g: 232, b: 232, a: 0.12 }; // Cool Platinum
+    const currentAccentColor = { r: 232, g: 232, b: 232, a: 0.12 };
 
     const getParticleCount = () => {
-      return window.innerWidth < 768 ? 50 : 100;
+      const base = isMobileRef.current
+        ? Math.floor(DESKTOP_NODE_COUNT * MOBILE_NODE_RATIO)
+        : DESKTOP_NODE_COUNT;
+      return base;
     };
+
+    const getConnectDistSq = () =>
+      isMobileRef.current ? MOBILE_CONNECT_SQ : DESKTOP_CONNECT_SQ;
 
     const initParticles = () => {
       const width = window.innerWidth;
@@ -50,7 +65,6 @@ export function ParticleCanvas() {
       const count = getParticleCount();
       particles = [];
 
-      // Calculate grid cells to space them out perfectly on start
       const cols = Math.ceil(Math.sqrt((count * width) / height));
       const rows = Math.ceil(count / cols);
       const cellWidth = width / cols;
@@ -67,7 +81,6 @@ export function ParticleCanvas() {
             colorType = 'dim';
           }
 
-          // Grid cell center with significant random jitter for natural look
           const jitterX = (Math.random() - 0.5) * cellWidth * 0.7;
           const jitterY = (Math.random() - 0.5) * cellHeight * 0.7;
           const x = (c + 0.5) * cellWidth + jitterX;
@@ -76,11 +89,11 @@ export function ParticleCanvas() {
           particles.push({
             x: Math.max(20, Math.min(x, width - 20)),
             y: Math.max(20, Math.min(y, height - 20)),
-            radius: Math.random() * 1.2 + 0.8, // Slightly smaller radius to reduce visual noise
+            radius: Math.random() * 1.2 + 0.8,
             colorType,
-            vx: Math.random() * 0.08 - 0.04, // slow cinematic drift
-            vy: Math.random() * 0.06 - 0.03, // slow cinematic drift
-            parallaxFactor: Math.random() * 0.08 - 0.04
+            vx: Math.random() * 0.08 - 0.04,
+            vy: Math.random() * 0.06 - 0.03,
+            parallaxFactor: Math.random() * 0.08 - 0.04,
           });
           pIndex++;
         }
@@ -89,7 +102,6 @@ export function ParticleCanvas() {
 
     initParticles();
 
-    // Scroll velocity tracking
     let lastScrollY = window.scrollY;
     let scrollVelocity = 0;
     let scrollTicking = false;
@@ -108,9 +120,9 @@ export function ParticleCanvas() {
 
     window.addEventListener('scroll', handleScrollEvent, { passive: true });
 
-    // Resize handling with debounce
-    let resizeTimeout: NodeJS.Timeout;
+    let resizeTimeout: ReturnType<typeof setTimeout>;
     const handleResize = () => {
+      isMobileRef.current = window.innerWidth < 768;
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         const oldWidth = canvas.width;
@@ -121,7 +133,7 @@ export function ParticleCanvas() {
         canvas.width = newWidth;
         canvas.height = newHeight;
 
-        particles.forEach(p => {
+        particles.forEach((p) => {
           p.x = (p.x / oldWidth) * newWidth;
           p.y = (p.y / oldHeight) * newHeight;
         });
@@ -135,187 +147,179 @@ export function ParticleCanvas() {
 
     window.addEventListener('resize', handleResize);
 
-    // Render loop
     const animate = () => {
+      frameCounter++;
+      const skipPhysics =
+        isMobileRef.current && frameCounter % 2 !== 0;
+
       const width = canvas.width;
       const height = canvas.height;
-      ctx.clearRect(0, 0, width, height);
+      const connectDistSq = getConnectDistSq();
+      const connectDist = Math.sqrt(connectDistSq);
 
-      // Keep luxurious cool platinum space-starfield consistent site-wide
-      const targetColor = { r: 232, g: 232, b: 232, a: 0.12 };
+      if (!skipPhysics) {
+        ctx.clearRect(0, 0, width, height);
 
-      // Lerp accent color over ~60 frames
-      currentAccentColor.r += (targetColor.r - currentAccentColor.r) * 0.05;
-      currentAccentColor.g += (targetColor.g - currentAccentColor.g) * 0.05;
-      currentAccentColor.b += (targetColor.b - currentAccentColor.b) * 0.05;
-      currentAccentColor.a += (targetColor.a - currentAccentColor.a) * 0.05;
+        const targetColor = { r: 232, g: 232, b: 232, a: 0.12 };
+        currentAccentColor.r += (targetColor.r - currentAccentColor.r) * 0.05;
+        currentAccentColor.g += (targetColor.g - currentAccentColor.g) * 0.05;
+        currentAccentColor.b += (targetColor.b - currentAccentColor.b) * 0.05;
+        currentAccentColor.a += (targetColor.a - currentAccentColor.a) * 0.05;
 
-      const accentStyle = `rgba(${Math.round(currentAccentColor.r)}, ${Math.round(currentAccentColor.g)}, ${Math.round(currentAccentColor.b)}, ${currentAccentColor.a})`;
+        const accentStyle = `rgba(${Math.round(currentAccentColor.r)}, ${Math.round(currentAccentColor.g)}, ${Math.round(currentAccentColor.b)}, ${currentAccentColor.a})`;
 
-      // 1. Build adjacency list of connections (< 130px)
-      const neighbors: number[][] = Array.from({ length: particles.length }, () => []);
-      for (let i = 0; i < particles.length; i++) {
-        const p1 = particles[i];
-        for (let j = i + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const dx = p2.x - p1.x;
-          const dy = p2.y - p1.y;
-          const distSq = dx * dx + dy * dy;
-          if (distSq < 16900) { // 130px connection radius
-            neighbors[i].push(j);
-            neighbors[j].push(i);
-          }
-        }
-      }
-
-      // 2. Find connected components (clusters) using a quick DFS
-      const visited = new Set<number>();
-      const particleToClusterSize: number[] = new Array(particles.length).fill(1);
-      const particleToClusterId: number[] = new Array(particles.length).fill(-1);
-      
-      let clusterIdCounter = 0;
-      for (let i = 0; i < particles.length; i++) {
-        if (!visited.has(i)) {
-          const clusterIndices: number[] = [];
-          const queue = [i];
-          visited.add(i);
-          
-          while (queue.length > 0) {
-            const curr = queue.shift()!;
-            clusterIndices.push(curr);
-            for (const neighbor of neighbors[curr]) {
-              if (!visited.has(neighbor)) {
-                visited.add(neighbor);
-                queue.push(neighbor);
-              }
+        const neighbors: number[][] = Array.from({ length: particles.length }, () => []);
+        for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i];
+          for (let j = i + 1; j < particles.length; j++) {
+            const p2 = particles[j];
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < connectDistSq) {
+              neighbors[i].push(j);
+              neighbors[j].push(i);
             }
           }
-          
-          const clusterSize = clusterIndices.length;
-          clusterIndices.forEach(idx => {
-            particleToClusterSize[idx] = clusterSize;
-            particleToClusterId[idx] = clusterIdCounter;
-          });
-          clusterIdCounter++;
         }
-      }
 
-      // 3. Apply physics forces (Intelligent constellation control: max size 3, comfortable spacing)
-      for (let i = 0; i < particles.length; i++) {
-        const p1 = particles[i];
-        for (let j = i + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const dx = p2.x - p1.x;
-          const dy = p2.y - p1.y;
-          const distSq = dx * dx + dy * dy;
+        const visited = new Set<number>();
+        const particleToClusterSize: number[] = new Array(particles.length).fill(1);
+        const particleToClusterId: number[] = new Array(particles.length).fill(-1);
 
-          if (distSq < 16900) { // Within connection distance (130px)
-            const dist = Math.max(Math.sqrt(distSq), 0.1);
-            
-            // Global repulsion: strictly enforce minimum spacing of 75px between ANY two particles to keep them spaced out
-            if (dist < 75) {
-              const force = (1 - dist / 75) * 0.025; // solid spacing pressure
-              const rx = dx * force;
-              const ry = dy * force;
-              p1.vx -= rx;
-              p1.vy -= ry;
-              p2.vx += rx;
-              p2.vy += ry;
-            } else if (particleToClusterId[i] === particleToClusterId[j]) {
-              // Gentle attraction to keep connected stars in same constellation active but spaced
-              const force = (1 - dist / 130) * 0.0006;
-              const ax = dx * force;
-              const ay = dy * force;
-              p1.vx += ax;
-              p1.vy += ay;
-              p2.vx -= ax;
-              p2.vy -= ay;
-            } else {
-              // If they are in DIFFERENT clusters, keep them separated
-              const sizeI = particleToClusterSize[i];
-              const sizeJ = particleToClusterSize[j];
-              
-              if (sizeI + sizeJ > 3) {
-                // Repel to strictly prevent merging into large dense clusters
-                const force = (1 - dist / 130) * 0.012;
+        let clusterIdCounter = 0;
+        for (let i = 0; i < particles.length; i++) {
+          if (!visited.has(i)) {
+            const clusterIndices: number[] = [];
+            const queue = [i];
+            visited.add(i);
+
+            while (queue.length > 0) {
+              const curr = queue.shift()!;
+              clusterIndices.push(curr);
+              for (const neighbor of neighbors[curr]) {
+                if (!visited.has(neighbor)) {
+                  visited.add(neighbor);
+                  queue.push(neighbor);
+                }
+              }
+            }
+
+            const clusterSize = clusterIndices.length;
+            clusterIndices.forEach((idx) => {
+              particleToClusterSize[idx] = clusterSize;
+              particleToClusterId[idx] = clusterIdCounter;
+            });
+            clusterIdCounter++;
+          }
+        }
+
+        for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i];
+          for (let j = i + 1; j < particles.length; j++) {
+            const p2 = particles[j];
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const distSq = dx * dx + dy * dy;
+
+            if (distSq < connectDistSq) {
+              const dist = Math.max(Math.sqrt(distSq), 0.1);
+
+              if (dist < 75) {
+                const force = (1 - dist / 75) * 0.025;
                 const rx = dx * force;
                 const ry = dy * force;
                 p1.vx -= rx;
                 p1.vy -= ry;
                 p2.vx += rx;
                 p2.vy += ry;
+              } else if (particleToClusterId[i] === particleToClusterId[j]) {
+                const force = (1 - dist / connectDist) * 0.0006;
+                const ax = dx * force;
+                const ay = dy * force;
+                p1.vx += ax;
+                p1.vy += ay;
+                p2.vx -= ax;
+                p2.vy -= ay;
+              } else {
+                const sizeI = particleToClusterSize[i];
+                const sizeJ = particleToClusterSize[j];
+
+                if (sizeI + sizeJ > 3) {
+                  const force = (1 - dist / connectDist) * 0.012;
+                  const rx = dx * force;
+                  const ry = dy * force;
+                  p1.vx -= rx;
+                  p1.vy -= ry;
+                  p2.vx += rx;
+                  p2.vy += ry;
+                }
               }
             }
           }
         }
-      }
 
-      // Render particles
-      particles.forEach(p => {
-        // Clamp velocity to a highly atmospheric, extremely slow cinematic drift
-        p.vx = Math.max(Math.min(p.vx, 0.12), -0.12);
-        p.vy = Math.max(Math.min(p.vy, 0.08), -0.08);
+        particles.forEach((p) => {
+          p.vx = Math.max(Math.min(p.vx, 0.12), -0.12);
+          p.vy = Math.max(Math.min(p.vy, 0.08), -0.08);
+          p.vx *= 0.99;
+          p.vy *= 0.99;
+          p.vx += (Math.random() - 0.5) * 0.0015;
+          p.vy += (Math.random() - 0.5) * 0.0012;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.y -= scrollVelocity * 0.4;
+          p.x += scrollVelocity * p.parallaxFactor;
 
-        // Slowly damp velocity back to normal drift
-        p.vx *= 0.99;
-        p.vy *= 0.99;
+          if (p.x < 0) p.x = width;
+          if (p.x > width) p.x = 0;
+          if (p.y < 0) p.y = height;
+          if (p.y > height) p.y = 0;
 
-        // Micro random walking to keep organic movement alive
-        p.vx += (Math.random() - 0.5) * 0.0015;
-        p.vy += (Math.random() - 0.5) * 0.0012;
+          let fillStyle = '';
+          if (p.colorType === 'white') {
+            fillStyle = 'rgba(255, 255, 255, 0.4)';
+          } else if (p.colorType === 'dim') {
+            fillStyle = 'rgba(255, 255, 255, 0.1)';
+          } else {
+            fillStyle = accentStyle;
+          }
 
-        p.x += p.vx;
-        p.y += p.vy;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = fillStyle;
+          ctx.fill();
+        });
 
-        p.y -= scrollVelocity * 0.4;
-        p.x += scrollVelocity * p.parallaxFactor;
+        for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i];
+          for (let j = i + 1; j < particles.length; j++) {
+            const p2 = particles[j];
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            const distSq = dx * dx + dy * dy;
 
-        if (p.x < 0) p.x = width;
-        if (p.x > width) p.x = 0;
-        if (p.y < 0) p.y = height;
-        if (p.y > height) p.y = 0;
-
-        let fillStyle = '';
-        if (p.colorType === 'white') {
-          fillStyle = 'rgba(255, 255, 255, 0.4)'; // soft white
-        } else if (p.colorType === 'dim') {
-          fillStyle = 'rgba(255, 255, 255, 0.1)'; // faint dim white
-        } else {
-          fillStyle = accentStyle;
-        }
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = fillStyle;
-        ctx.fill();
-      });
-
-      // Rendering of connection lines (refined opacity for Apple-level luxury negative space)
-      for (let i = 0; i < particles.length; i++) {
-        const p1 = particles[i];
-        for (let j = i + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const dx = p1.x - p2.x;
-          const dy = p1.y - p2.y;
-          const distSq = dx * dx + dy * dy;
-
-          if (distSq < 16900) { // 130px max distance
-            // Only draw connection lines if they strictly belong to the same cluster (size <= 3)
-            if (particleToClusterId[i] === particleToClusterId[j] && particleToClusterSize[i] <= 3) {
-              const dist = Math.sqrt(distSq);
-              const opacity = (1 - dist / 130) * 0.38; // 3x more visible, sharp lines
-              ctx.beginPath();
-              ctx.moveTo(p1.x, p1.y);
-              ctx.lineTo(p2.x, p2.y);
-              ctx.strokeStyle = `rgba(232, 232, 232, ${opacity})`;
-              ctx.lineWidth = 0.8; // slightly thicker, high-fidelity lines
-              ctx.stroke();
+            if (distSq < connectDistSq) {
+              if (
+                particleToClusterId[i] === particleToClusterId[j] &&
+                particleToClusterSize[i] <= 3
+              ) {
+                const dist = Math.sqrt(distSq);
+                const opacity = (1 - dist / connectDist) * 0.38;
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = `rgba(232, 232, 232, ${opacity})`;
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+              }
             }
           }
         }
+
+        scrollVelocity *= 0.88;
       }
 
-      scrollVelocity *= 0.88;
       animationFrameId = requestAnimationFrame(animate);
     };
 
@@ -330,12 +334,13 @@ export function ParticleCanvas() {
   }, []);
 
   return (
-    <canvas 
-      ref={canvasRef} 
-      className="fixed inset-0 w-screen h-screen pointer-events-none opacity-[0.82]" 
-      style={{ zIndex: 1 }}
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 w-screen h-screen pointer-events-none opacity-[0.82] particle-network-canvas"
+      style={{ zIndex: 1, contain: 'layout style paint' }}
     />
   );
 }
 
+export const ParticleCanvas = memo(ParticleCanvasComponent);
 export default ParticleCanvas;

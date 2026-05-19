@@ -1,4 +1,5 @@
-import { useRef, useMemo, useEffect, useState } from 'react';
+import { useRef, useMemo, useEffect, useState, memo } from 'react';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
 import { useFrame } from '@react-three/fiber';
 import { MeshTransmissionMaterial } from '@react-three/drei';
 import * as THREE from 'three';
@@ -102,7 +103,8 @@ export function createBrilliantCutDiamond() {
   return baseGeo;
 }
 
-export function Diamond() {
+function DiamondComponent() {
+  const isMobile = useMobileDetect();
   const meshRef = useRef<THREE.Mesh>(null);
   const [rotation] = useAtom(diamondRotationAtom);
   const [mouseRotation, setMouseRotation] = useState({ x: 0, y: 0 });
@@ -149,6 +151,7 @@ export function Diamond() {
   // Animate diamond with smooth rotation and floating motion
   useFrame((state) => {
     if (!meshRef.current || !isInitialized) return;
+    if (isMobile && state.gl.info.render.frame % 2 !== 0) return;
     
     // Continuous gentle rotation for visibility - very slow, elegant rotation
     meshRef.current.rotation.x += 0.00008;
@@ -192,17 +195,15 @@ export function Diamond() {
         clearcoatRoughness={0.03}
         
         // Spectral effects for realistic diamond
-        chromaticAberration={0.06}  // Subtle spectral dispersion
-        anisotropy={0.12}           // Surface micro-facets
+        chromaticAberration={0}
+        anisotropy={0.12}
         
-        // Distortion for depth
         distortion={0.01}
         distortionScale={0.2}
         temporalDistortion={0.0}
         
-        // Rendering quality
-        samples={64}
-        resolution={2048}
+        samples={isMobile ? 2 : 8}
+        resolution={256}
         backside={true}
         toneMapped={true}
         side={THREE.DoubleSide}
@@ -210,3 +211,5 @@ export function Diamond() {
     </mesh>
   );
 }
+
+export const Diamond = memo(DiamondComponent);

@@ -460,6 +460,7 @@ export function HeroContent() {
         animate={stage >= 3 ? 'visible' : 'hidden'}
         variants={fadeInUp}
         custom={0}
+        viewport={{ once: true, margin: '-50px' }}
         className="absolute top-[8%] md:top-[10%] left-1/2 -translate-x-1/2 text-[10px] md:text-xs uppercase tracking-[0.4em] text-accent font-semibold text-center opacity-85 pointer-events-none select-none whitespace-nowrap z-50 hero-chapter-label"
         style={{ textShadow: '0 2px 12px rgba(0,0,0,0.85)' }}
       >
@@ -558,6 +559,7 @@ export function HeroContent() {
             animate={stage >= 2 ? 'visible' : 'hidden'}
             variants={fadeInUp}
             custom={0}
+            viewport={{ once: true, margin: '-50px' }}
           >
             <div
               className="px-6 py-2.5 rounded-full border border-white/[0.05] flex items-center justify-center pointer-events-none select-none hero-tagline"
@@ -640,6 +642,7 @@ export function HeroContent() {
           animate={stage >= 3 ? 'visible' : 'hidden'}
           variants={scaleIn}
           custom={0.1}
+          viewport={{ once: true, margin: '-50px' }}
         >
           <button
             onClick={() => scrollToChapter('chapter-projects')}

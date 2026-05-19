@@ -108,10 +108,23 @@ body::-webkit-scrollbar,
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 .scroll-reveal {
   animation: scroll-reveal 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
   opacity: 0;
   will-change: transform;
+}
+
+.arsenal-card {
+  animation: float 3.5s ease-in-out infinite;
 }
 
 /* Glassmorphism effect for premium UI */
@@ -146,10 +159,12 @@ body::-webkit-scrollbar,
   pointer-events: none; /* subheading non-interactive */
 }
 
-/* High-performance parallax target: hint browser for optimized transforms */
 .hero-parallax {
-  will-change: transform;
   transform: translate3d(0,0,0);
+}
+
+.robot-container {
+  will-change: transform;
 }
 
 /* Cinematic atmosphere overlays */
@@ -189,20 +204,81 @@ body::-webkit-scrollbar,
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    border-color 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.7s ease,
+    color 0.45s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   text-decoration: none;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+  transform: translate(0, 0);
+}
+
+.glass-btn::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  border: 1px solid rgba(212, 175, 55, 0.12);
+  box-shadow:
+    0 0 0 0 rgba(212, 175, 55, 0),
+    0 0 0 0 rgba(212, 175, 55, 0),
+    inset 0 0 0 0 rgba(212, 175, 55, 0);
+  transition:
+    opacity 0.7s ease,
+    box-shadow 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.7s ease;
 }
 
 .glass-btn:hover {
   transform: translateY(-1.5px) scale(1.015);
   background: rgba(15, 15, 15, 0.85);
-  border-color: rgba(212, 175, 55, 0.45); /* Soft, razor-sharp warm gold illumination */
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85),
-              0 0 15px rgba(212, 175, 55, 0.15),
-              inset 0 0 8px rgba(212, 175, 55, 0.03);
+  border-color: rgba(212, 175, 55, 0.58); /* Soft, razor-sharp warm gold illumination */
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.86),
+    0 0 0 1px rgba(212, 175, 55, 0.28),
+    0 0 18px rgba(212, 175, 55, 0.18),
+    0 0 34px rgba(212, 175, 55, 0.08),
+    inset 0 0 10px rgba(212, 175, 55, 0.05);
   color: #ffffff;
+}
+
+.glass-btn:hover::before {
+  opacity: 1;
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.28),
+    0 0 16px rgba(212, 175, 55, 0.22),
+    0 0 32px rgba(212, 175, 55, 0.1),
+    inset 0 0 12px rgba(212, 175, 55, 0.04);
+  transform: scale(1.01);
+}
+
+/* Contact button — simple gold border glow on hover (no conic gradients) */
+.contact-btn {
+  border: 1.5px solid rgba(212, 175, 55, 0);
+  box-shadow: 0 0 0px 0px rgba(212, 175, 55, 0);
+  transition: border-color 0.7s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.contact-btn:hover {
+  border-color: rgba(212, 175, 55, 0.65);
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.24),
+    0 0 16px rgba(212, 175, 55, 0.18),
+    0 0 30px rgba(212, 175, 55, 0.08),
+    inset 0 0 10px 0px rgba(212, 175, 55, 0.06);
+}
+@media (max-width: 767px) {
+  /* Disable hover effects on mobile devices */
+  .contact-btn:hover { border-color: rgba(212, 175, 55, 0); box-shadow: 0 0 0px 0px rgba(212, 175, 55, 0); }
 }
 
 .outline-btn {
@@ -211,8 +287,11 @@ body::-webkit-scrollbar,
 }
 
 .outline-btn:hover {
-  border-color: rgba(255, 255, 255, 0.25); /* White rim highlight instead of cyan for the secondary button! */
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
+  border-color: rgba(212, 175, 55, 0.45); /* Keep the rim in the same accent language */
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.85),
+    0 0 18px rgba(212, 175, 55, 0.12),
+    inset 0 0 8px rgba(212, 175, 55, 0.03);
   color: #ffffff;
 }
 
@@ -254,7 +333,7 @@ body {
 
 /* Smooth transitions for interactive elements */
 button, a, [role="button"] {
-  transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 /* Magnetic hover effect for premium feel */
@@ -566,7 +645,7 @@ iframe[src*="spline"] {
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: opacity 0.3s ease, transform 0.3s ease;
   width: fit-content;
   will-change: transform;
 }
@@ -657,7 +736,7 @@ iframe[src*="spline"] {
   font-size: 0.7rem !important;
   font-weight: 500 !important;
   letter-spacing: 0.06em !important;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
 }
 
 .tech-pill-atlas:hover {
@@ -674,7 +753,7 @@ iframe[src*="spline"] {
   font-size: 0.7rem !important;
   font-weight: 500 !important;
   letter-spacing: 0.06em !important;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
 }
 
 .tech-pill-nexora:hover {
@@ -691,7 +770,7 @@ iframe[src*="spline"] {
   font-size: 0.7rem !important;
   font-weight: 500 !important;
   letter-spacing: 0.06em !important;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
 }
 
 .tech-pill-stratos:hover {
@@ -851,7 +930,7 @@ iframe[src*="spline"] {
   font-size: 0.7rem !important;
   font-weight: 500 !important;
   letter-spacing: 0.06em !important;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
 }
 
 .tech-pill-atlas:hover {
@@ -868,7 +947,7 @@ iframe[src*="spline"] {
   font-size: 0.7rem !important;
   font-weight: 500 !important;
   letter-spacing: 0.06em !important;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
 }
 
 .tech-pill-nexora:hover {
@@ -885,7 +964,7 @@ iframe[src*="spline"] {
   font-size: 0.7rem !important;
   font-weight: 500 !important;
   letter-spacing: 0.06em !important;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
 }
 
 .tech-pill-stratos:hover {
@@ -1060,14 +1139,33 @@ canvas + div,
 
 /* ── Button Hover Glow States ────────────────────────────── */
 .glass-btn {
-  will-change: transform, box-shadow;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    border-color 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.7s ease,
+    color 0.45s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 .glass-btn:hover {
-  transform: translateY(-2px) scale(1.03) !important;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.85),
-              0 0 18px rgba(212, 175, 55, 0.12),
-              inset 0 0 6px rgba(212, 175, 55, 0.03) !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.86),
+    0 0 0 1px rgba(212, 175, 55, 0.28),
+    0 0 18px rgba(212, 175, 55, 0.18),
+    0 0 34px rgba(212, 175, 55, 0.08),
+    inset 0 0 10px rgba(212, 175, 55, 0.05) !important;
+}
+.glass-btn:hover::before {
+  opacity: 1;
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.28),
+    0 0 16px rgba(212, 175, 55, 0.22),
+    0 0 32px rgba(212, 175, 55, 0.1),
+    inset 0 0 12px rgba(212, 175, 55, 0.04);
 }
 .glass-btn:active {
   transform: translateY(0) scale(0.98) !important;
@@ -1076,15 +1174,18 @@ canvas + div,
 
 /* ── Arsenal Card Hover Enhancement ──────────────────────── */
 .arsenal-card {
-  will-change: transform, box-shadow;
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              box-shadow 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              border-color 0.5s ease !important;
+  transition:
+    border-color 1.05s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 1.2s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 1.05s ease,
+    transform 1.05s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 .arsenal-card:hover {
   transform: translateY(-8px) !important;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.5),
-              0 0 15px rgba(232, 232, 232, 0.03) !important;
+  box-shadow:
+    0 16px 40px rgba(0,0,0,0.5),
+    0 0 20px rgba(212, 175, 55, 0.06),
+    inset 0 0 16px rgba(212, 175, 55, 0.03) !important;
 }
 
 /* ── Tech Skill Item Hover (gold underline) ──────────────── */
@@ -1124,19 +1225,7 @@ a[href]:not(.glass-btn) {
 }
 
 /* ── Performance Hints for Animated Elements ─────────────── */
-.origin-line,
-.arsenal-card,
-.achievement-badge,
-.achievement-title,
-.achievement-subtitle,
-.achievement-scores,
-.contact-quote,
-.contact-desc,
-.contact-ctas,
-.contact-footer,
-.contact-topbar {
-  will-change: transform, opacity;
-}
+/* will-change limited to actively animating hero elements (see .robot-container, .floating-physics-letter) */
 
 /* ── Spline Cover Badge Pulse ────────────────────────────── */
 .spline-cover-badge {
@@ -1154,7 +1243,7 @@ a[href]:not(.glass-btn) {
   z-index: 60;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 .spline-cover-badge:hover {
   border-color: rgba(232,232,232,0.2);

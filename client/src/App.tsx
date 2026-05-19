@@ -5,7 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-import ParticleCanvas from "./components/ParticleCanvas";
+import { ParticleCanvas } from "./components/ParticleCanvas";
 
 
 function Router() {

@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { memo, useEffect } from 'react';
 import Spline from '@splinetool/react-spline';
 import { motion, useAnimation } from 'framer-motion';
 import { useAtom } from 'jotai';
 import { splineLoadedAtom, reneChatOpenAtom, activeChapterAtom } from '@/lib/atoms';
 import { ReneLauncher } from '@/components/ReneChatbot';
 
-export function SplineHero() {
+function SplineHeroComponent() {
   const [loaded, setLoaded] = useAtom(splineLoadedAtom);
   const [, setIsOpen] = useAtom(reneChatOpenAtom);
   const [activeChapter] = useAtom(activeChapterAtom);
@@ -126,4 +126,6 @@ export function SplineHero() {
   );
 }
 
+const SplineHero = memo(SplineHeroComponent);
+export { SplineHero };
 export default SplineHero;

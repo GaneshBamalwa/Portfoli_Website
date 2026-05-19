@@ -1,16 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { SplineHero } from '@/components/SplineHero';
 import HeroContent from '@/components/HeroContent';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { useMouseInteraction } from '@/hooks/useMouseInteraction';
 import { useScrollDepthTransition } from '@/hooks/useScrollDepthTransition';
 import { useScrollTrigger } from '@/hooks/useScrollTrigger';
+import { setupChapterFlashes } from '@/lib/cinemaEffects';
+import { gsapDur } from '@/lib/gsapDuration';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 import { useAtom } from 'jotai';
-import { activeChapterAtom, subSceneAtom, scrollPercentAtom } from '@/lib/atoms';
+import { activeChapterAtom, subSceneAtom, scrollPercentAtom, reneChatOpenAtom } from '@/lib/atoms';
 import ScrambleText from '@/components/ScrambleText';
-import { ReneChatbot } from '@/components/ReneChatbot';
+import { TriumphConfetti } from '@/components/TriumphConfetti';
+
+const ArsenalSection = lazy(() => import('@/sections/ArsenalSection'));
+const ContactSection = lazy(() => import('@/sections/ContactSection'));
+const ReneChatbot = lazy(() => import('@/components/ReneChatbot'));
 
 export default function Home() {
   // Initialize foundational mouse and scroll effects
@@ -26,6 +35,9 @@ export default function Home() {
   const [subScene, setSubScene] = useAtom(subSceneAtom);
   const [isScrolling, setIsScrolling] = useState(false);
   const [activeProject, setActiveProject] = useState(0);
+  const [loadReneChat, setLoadReneChat] = useState(false);
+  const [isReneOpen] = useAtom(reneChatOpenAtom);
+  const isMobile = useMobileDetect();
 
   // Parent refs for GSAP ScrollTrigger context
   const originRef = useRef<HTMLDivElement>(null);
@@ -33,6 +45,8 @@ export default function Home() {
   const horizontalRef = useRef<HTMLDivElement>(null);
   const arsenalRef = useRef<HTMLDivElement>(null);
   const winRef = useRef<HTMLDivElement>(null);
+  const flashOverlayRef = useRef<HTMLDivElement>(null);
+  const flashOverlayRef2 = useRef<HTMLDivElement>(null);
 
   // Chapter mapping for navigation
   const CHAPTERS = [
@@ -44,6 +58,17 @@ export default function Home() {
     { id: 'chapter-contact', label: 'THE HORIZON', num: '05' }
   ];
 
+  useEffect(() => {
+    if (isReneOpen) setLoadReneChat(true);
+  }, [isReneOpen]);
+
+  useEffect(() => {
+    setupChapterFlashes(flashOverlayRef2);
+
+    return () => {
+      ScrollTrigger.getAll().forEach((t) => t.kill());
+    };
+  }, []);
   // Node descriptions for the ATLAS, NEXORA, and STRATOS interactive architectures
   const NODE_DETAILS: Record<string, { title: string; desc: string; status: string; load: string }> = {
     'input': { title: 'WORKLOAD INGEST', desc: 'Accepts raw startup ideas, tasks, or event triggers, injecting them into the pipeline.', status: 'Active', load: '12 events/s' },
@@ -144,14 +169,15 @@ export default function Home() {
   useEffect(() => {
     if (!originRef.current) return;
 
+    const d = (n: number) => gsapDur(n, isMobile);
+
     const ctx = gsap.context(() => {
-      // Label: fade-in + slide right (600ms)
       gsap.fromTo('.origin-label', 
         { opacity: 0, x: -20 },
         { 
-          opacity: 1, x: 0, duration: 0.6, 
+          opacity: 1, x: 0, duration: d(0.6), 
           ease: 'power3.out',
-          scrollTrigger: { trigger: originRef.current, start: 'top 75%', toggleActions: 'restart none none reset' }
+          scrollTrigger: { trigger: originRef.current, start: 'top 75%', toggleActions: 'restart none none reset', invalidateOnRefresh: true }
         }
       );
 
@@ -164,41 +190,39 @@ export default function Home() {
         opacity: 1,
         y: 0,
         scale: 1,
-        duration: 0.8,
+        duration: d(0.8),
         stagger: 0.1,
         ease: 'power3.out',
         scrollTrigger: {
           trigger: originRef.current,
           start: 'top 75%',
-          toggleActions: 'restart none none reset'
+          toggleActions: 'restart none none reset',
+          invalidateOnRefresh: true,
         }
       });
 
-      // Closing statement: special gold emphasis entrance
       gsap.fromTo('.closing-statement',
         { opacity: 0, y: 20, scale: 0.95 },
         {
           opacity: 1, y: 0, scale: 1,
-          duration: 0.9,
+          duration: d(0.9),
           ease: 'power3.out',
           delay: 0.6,
-          scrollTrigger: { trigger: originRef.current, start: 'top 60%', toggleActions: 'restart none none reset' }
+          scrollTrigger: { trigger: originRef.current, start: 'top 60%', toggleActions: 'restart none none reset', invalidateOnRefresh: true }
         }
       );
 
-      // Origin links: slide up
       gsap.fromTo('.origin-links',
         { opacity: 0, y: 15 },
         {
           opacity: 1, y: 0,
-          duration: 0.6,
+          duration: d(0.6),
           ease: 'power2.out',
           delay: 0.8,
-          scrollTrigger: { trigger: originRef.current, start: 'top 60%', toggleActions: 'restart none none reset' }
+          scrollTrigger: { trigger: originRef.current, start: 'top 60%', toggleActions: 'restart none none reset', invalidateOnRefresh: true }
         }
       );
 
-      // Background atmospheric glow drift parallax
       gsap.to('.coord-blur-origin', {
         yPercent: 30,
         ease: 'none',
@@ -207,14 +231,18 @@ export default function Home() {
           start: 'top bottom',
           end: 'bottom top',
           scrub: true,
+          invalidateOnRefresh: true,
         }
       });
     }, originRef);
 
     return () => {
       ctx.revert();
+      ScrollTrigger.getAll().forEach((t) => t.kill());
     };
-  }, []);
+  }, [isMobile]);
+
+  // Removed aggressive GSAP-based snap per product request.
 
   // Hero & Global Section Parallax Animations
   useEffect(() => {
@@ -299,6 +327,7 @@ export default function Home() {
 
     return () => {
       ctx.revert();
+      ScrollTrigger.getAll().forEach((t) => t.kill());
     };
   }, []);
 
@@ -330,15 +359,11 @@ export default function Home() {
             ease: 'power2.inOut'
           },
           onUpdate: (self) => {
-            const progress = self.progress;
-            // Map scroll progress to project indices
-            let activeIdx = 0;
-            if (progress > 0.28 && progress <= 0.72) {
-              activeIdx = 1;
-            } else if (progress > 0.72) {
-              activeIdx = 2;
-            }
-            setActiveProject(activeIdx);
+                const progress = self.progress;
+                // Map scroll progress to project indices (3 panels -> indices 0,1,2)
+                const panels = 3;
+                const idx = Math.round(progress * (panels - 1));
+                setActiveProject(Math.min(Math.max(idx, 0), panels - 1));
           }
         }
       });
@@ -346,7 +371,7 @@ export default function Home() {
 
     return () => {
       ctx.revert();
-      ScrollTrigger.refresh();
+      ScrollTrigger.getAll().forEach((t) => t.kill());
     };
   }, []);
 
@@ -385,40 +410,13 @@ export default function Home() {
       );
 
       // Cards: pop in with stagger (scale 0.9→1, 600ms, 200ms between)
-      gsap.from('.arsenal-card', {
-        opacity: 0,
-        y: 50,
-        scale: 0.9,
-        stagger: 0.2,
-        duration: 0.6,
-        ease: 'back.out(1.4)',
-        scrollTrigger: {
-          trigger: arsenalRef.current,
-          start: 'top 50%',
-          toggleActions: 'play none none none',
-          fastScrollEnd: true,
-          invalidateOnRefresh: true,
-        }
-      });
-
-      // Tech skill items inside cards: slide in from left with 80ms stagger
-      gsap.from('.arsenal-card .group\\/skill', {
-        opacity: 0,
-        x: -20,
-        stagger: 0.08,
-        duration: 0.4,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: arsenalRef.current,
-          start: 'top 45%',
-          toggleActions: 'play none none none',
-        }
-      });
+      // Cards and skill items remain static to avoid accidental hiding;
+      // animations were removed to ensure all cards are visible at render.
     }, arsenalRef);
 
     return () => {
       ctx.revert();
-      ScrollTrigger.refresh();
+      ScrollTrigger.getAll().forEach((t) => t.kill());
     };
   }, []);
 
@@ -426,14 +424,16 @@ export default function Home() {
   useEffect(() => {
     if (!winRef.current) return;
 
+    const d = (n: number) => gsapDur(n, isMobile);
+
     const ctx = gsap.context(() => {
       // Achievement badge: scale in with overshoot
       gsap.fromTo('.achievement-badge',
         { opacity: 0, scale: 0.8, y: 20 },
         {
           opacity: 1, scale: 1, y: 0,
-          duration: 0.7, ease: 'back.out(1.7)',
-          scrollTrigger: { trigger: winRef.current, start: 'top 55%', toggleActions: 'play none none none' }
+          duration: d(0.7), ease: 'back.out(1.7)',
+          scrollTrigger: { trigger: winRef.current, start: 'top 55%', toggleActions: 'play none none none', invalidateOnRefresh: true }
         }
       );
 
@@ -442,8 +442,8 @@ export default function Home() {
         { opacity: 0, y: 30 },
         {
           opacity: 1, y: 0,
-          duration: 0.8, ease: 'power3.out', delay: 0.2,
-          scrollTrigger: { trigger: winRef.current, start: 'top 55%', toggleActions: 'play none none none' }
+          duration: d(0.8), ease: 'power3.out', delay: 0.2,
+          scrollTrigger: { trigger: winRef.current, start: 'top 55%', toggleActions: 'play none none none', invalidateOnRefresh: true }
         }
       );
 
@@ -452,8 +452,8 @@ export default function Home() {
         { opacity: 0, y: 20 },
         {
           opacity: 1, y: 0,
-          duration: 0.6, ease: 'power2.out', delay: 0.4,
-          scrollTrigger: { trigger: winRef.current, start: 'top 55%', toggleActions: 'play none none none' }
+          duration: d(0.6), ease: 'power2.out', delay: 0.4,
+          scrollTrigger: { trigger: winRef.current, start: 'top 55%', toggleActions: 'play none none none', invalidateOnRefresh: true }
         }
       );
 
@@ -462,8 +462,8 @@ export default function Home() {
         { opacity: 0, y: 30 },
         {
           opacity: 1, y: 0,
-          duration: 0.7, ease: 'power3.out', delay: 0.5,
-          scrollTrigger: { trigger: winRef.current, start: 'top 50%', toggleActions: 'play none none none' }
+          duration: d(0.7), ease: 'power3.out', delay: 0.5,
+          scrollTrigger: { trigger: winRef.current, start: 'top 50%', toggleActions: 'play none none none', invalidateOnRefresh: true }
         }
       );
 
@@ -471,7 +471,7 @@ export default function Home() {
       const counterObj = { val: 0 };
       gsap.to(counterObj, {
         val: 150,
-        duration: 1.2,
+        duration: d(1.2),
         ease: 'power2.inOut',
         scrollTrigger: {
           trigger: winRef.current,
@@ -482,20 +482,19 @@ export default function Home() {
         },
         onUpdate: () => {
           setTeamsCount(Math.floor(counterObj.val));
-        }
+        },
       });
 
       // Triumph glow breathing
       gsap.to('.triumph-glow', {
         scale: 1.15,
         opacity: 0.85,
-        duration: 2,
+        duration: d(2),
         repeat: -1,
         yoyo: true,
         ease: 'sine.inOut'
       });
 
-      // Triumph glow parallax
       gsap.to('.triumph-glow', {
         yPercent: 20,
         ease: 'none',
@@ -504,101 +503,61 @@ export default function Home() {
           start: 'top bottom',
           end: 'bottom top',
           scrub: true,
+          invalidateOnRefresh: true,
         }
       });
     }, winRef);
 
     return () => {
       ctx.revert();
-      ScrollTrigger.refresh();
+      ScrollTrigger.getAll().forEach((t) => t.kill());
     };
-  }, []);
+  }, [isMobile]);
 
-  // Chapter 5 (Contact/Horizon) Premium Entrance
-  useEffect(() => {
-    const contactEl = document.querySelector('.contact-section');
-    if (!contactEl) return;
-
-    const ctx = gsap.context(() => {
-      // Top bar fade in
-      gsap.fromTo('.contact-topbar',
-        { opacity: 0 },
-        {
-          opacity: 1, duration: 0.6, ease: 'power2.out',
-          scrollTrigger: { trigger: contactEl, start: 'top 70%', toggleActions: 'play none none none' }
-        }
-      );
-
-      // Quote: slide up from 40px offset
-      gsap.fromTo('.contact-quote',
-        { opacity: 0, y: 40 },
-        {
-          opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', delay: 0.1,
-          scrollTrigger: { trigger: contactEl, start: 'top 60%', toggleActions: 'play none none none' }
-        }
-      );
-
-      // Description fade in
-      gsap.fromTo('.contact-desc',
-        { opacity: 0, y: 20 },
-        {
-          opacity: 1, y: 0, duration: 0.7, ease: 'power2.out', delay: 0.3,
-          scrollTrigger: { trigger: contactEl, start: 'top 60%', toggleActions: 'play none none none' }
-        }
-      );
-
-      // CTA buttons: stagger fade in
-      gsap.fromTo('.contact-ctas .glass-btn',
-        { opacity: 0, y: 15, scale: 0.95 },
-        {
-          opacity: 1, y: 0, scale: 1,
-          stagger: 0.1, duration: 0.6, ease: 'back.out(1.2)', delay: 0.4,
-          scrollTrigger: { trigger: contactEl, start: 'top 55%', toggleActions: 'play none none none' }
-        }
-      );
-
-      // Footer links: stagger fade in
-      gsap.fromTo('.contact-footer span',
-        { opacity: 0, y: 10 },
-        {
-          opacity: 1, y: 0,
-          stagger: 0.1, duration: 0.5, ease: 'power2.out', delay: 0.6,
-          scrollTrigger: { trigger: contactEl, start: 'top 50%', toggleActions: 'play none none none' }
-        }
-      );
-    });
-
-    return () => ctx.revert();
-  }, []);
-
-  // Smooth scroll helper
   const scrollToChapter = (id: string) => {
     const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (!el) return;
+    // Simple smooth scroll for all chapter navigation (no cinematic flash)
+    el.scrollIntoView({ behavior: 'smooth' });
   };
 
   // Horizontal Projects Carousel Navigation Helper
   const handleNavigateProject = (idx: number) => {
-    if (!buildRef.current) return;
-    const trigger = ScrollTrigger.getById('projects-trigger');
-    if (!trigger) return;
-    
-    // Calculate scroll travel position
-    const start = trigger.start;
-    const end = trigger.end;
-    const totalScroll = end - start;
-    const targetScroll = start + (idx / 2) * totalScroll;
-    
-    window.scrollTo({
-      top: targetScroll,
-      behavior: 'smooth'
-    });
+    if (!buildRef.current || !horizontalRef.current) return;
+    const scrollWidth = horizontalRef.current!.scrollWidth;
+    const viewportWidth = window.innerWidth;
+    const travel = scrollWidth - viewportWidth; // total horizontal travel mapped to vertical scroll
+
+    // Panels count (we use 3 panels laid out as 0, 0.5, 1 progress)
+    const panels = 3;
+    const progress = (idx / (panels - 1));
+
+    // Compute the vertical scroll position for the start of the pinned build section
+    const buildTop = buildRef.current.getBoundingClientRect().top + window.scrollY;
+
+    const target = buildTop + progress * travel;
+
+    window.scrollTo({ top: Math.round(target), behavior: 'smooth' });
   };
 
   return (
-    <div className={`relative w-full bg-background text-[#f5f5f5] overflow-x-hidden select-none ${isScrolling ? 'scroll-active' : ''}`} style={{ touchAction: 'pan-y' }}>
+    <div className={`relative w-full bg-background text-[#f5f5f5] overflow-x-hidden select-none`} style={{ touchAction: 'pan-y' }}>
+      
+      {/* Cinematic Flash Overlay for THE BUILD transition */}
+      <div
+        ref={flashOverlayRef}
+        className="fixed inset-0 bg-white z-[9999] pointer-events-none"
+        style={{ opacity: 0 }}
+        aria-hidden
+      />
+
+      {/* Black Flash for Section Snaps */}
+      <div
+        ref={flashOverlayRef2}
+        className="fixed inset-0 bg-black z-[9998] pointer-events-none"
+        style={{ opacity: 0 }}
+        aria-hidden
+      />
       
       {/* 1. CINEMATIC SIDE PROGRESS INDICATOR */}
       <div 
@@ -635,7 +594,7 @@ export default function Home() {
 
 
       {/* CHAPTER 0 — HERO (Full Screen Landing) */}
-      <section id="chapter-hero" className="relative w-full h-screen overflow-hidden">
+      <section id="chapter-hero" className="relative w-full h-screen overflow-hidden" style={{ scrollSnapAlign: 'start' }}>
         {/* Cinematic Spline background */}
         <SplineHero />
 
@@ -694,6 +653,7 @@ export default function Home() {
         id="chapter-origin" 
         ref={originRef}
         className="relative w-full min-h-screen bg-[#050505] border-t border-white/5 py-24 md:py-32 flex items-center justify-center overflow-visible px-8 md:px-16 lg:px-24"
+        style={{ scrollSnapAlign: 'start' }}
       >
         {/* Subtle technological SVG grid backdrop (extremely faint for luxury negative space) */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.015]">
@@ -819,6 +779,7 @@ export default function Home() {
         id="chapter-projects" 
         ref={buildRef}
         className="relative w-full h-screen bg-[#030303]"
+        style={{ scrollSnapAlign: 'start' }}
       >
         <div 
           ref={horizontalRef}
@@ -830,7 +791,7 @@ export default function Home() {
             activeProject === 0 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
           }`}>
                  {/* Project Spec details */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20">
+            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4">
               <span className="text-xs font-light uppercase tracking-[0.35em] text-accent mb-3 block">
                 02 // THE BUILD
               </span>
@@ -851,7 +812,7 @@ export default function Home() {
                 Won 1st place at Samsung PRISM out of 150+ competing teams.
               </p>
               <p 
-                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text"
+                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 A distributed multi-agent AI orchestration platform. Built to take natural language requests, decompose them into structured multi-step workflows, and execute them across specialized services — with every reasoning step visible in real time.
@@ -1022,7 +983,7 @@ export default function Home() {
             activeProject === 1 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
           }`}>
                  {/* Description */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20">
+            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4">
               <span className="text-xs font-light uppercase tracking-[0.35em] text-[#b464ff] mb-3 block">
                 02 // THE BUILD
               </span>
@@ -1039,7 +1000,7 @@ export default function Home() {
                 "Built to be secure, scalable, and actually nice to use."
               </p>
               <p 
-                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-8 max-w-xl project-description-text"
+                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-8 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 A production-ready AI-powered customer support platform. Three user tiers, 25+ REST endpoints, a full ticket lifecycle, and an AI engine that triages requests and assists agents in real time.
@@ -1219,7 +1180,7 @@ export default function Home() {
             activeProject === 2 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
           }`}>
                  {/* Project Spec details */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20">
+            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4">
               <span className="text-xs font-light uppercase tracking-[0.35em] text-amber-500 mb-3 block">
                 02 // THE BUILD // PIPELINE MACHINE
               </span>
@@ -1239,7 +1200,7 @@ export default function Home() {
               </p>
               
               <p 
-                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-8 max-w-xl project-description-text"
+                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-8 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 A highly-distributed web scraping and data extraction infrastructure. Operates a Redis-backed queue crawler and a universal LLM-assisted parsing agent. Built for production-grade scraping pipelines that require rigorous data guarantees, dead-letter queue safety, and multiple format outputs.
@@ -1438,173 +1399,18 @@ export default function Home() {
       </section>
 
 
-      {/* CHAPTER 3 — THE ARSENAL (Materializing Staggered Skills) */}
-      <section 
-        id="chapter-skills" 
-        ref={arsenalRef}
-        className="relative w-full min-h-screen py-24 md:py-32 flex items-center justify-center bg-[#050505] border-t border-white/5"
-      >
-        <div className="max-w-6xl mx-auto w-full px-8 md:px-16 lg:px-24">
-          
-          <div className="text-left mb-16">
-            <span className="arsenal-label text-xs font-light uppercase tracking-[0.35em] text-accent mb-3 block">
-              03 // THE ARSENAL
-            </span>
-            <h2 
-              className="arsenal-headline text-4xl md:text-6xl font-light tracking-tight text-white uppercase"
-              style={{ fontFamily: 'var(--font-body)' }}
-            >
-              Weaponry & Tools
-            </h2>
-            <p className="arsenal-sub text-sm md:text-base text-white/40 mt-2 font-light">
-              Highly specialized technologies, frameworks, and core architectures designed to build thinking systems.
-            </p>
-          </div>
-
-          {/* Category grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            
-            {/* Category 1: AI & LLM */}
-            <div className="arsenal-card p-8 rounded-xl border border-white/10 bg-card/20 backdrop-blur-xl hover:border-accent/40 hover:shadow-[0_0_20px_rgba(16,217,129,0.05)] transition-all duration-500 text-left">
-              <div className="w-8 h-8 rounded bg-accent/5 border border-accent/25 flex items-center justify-center text-accent mb-6 font-mono text-sm">
-                01
-              </div>
-              <h3 className="text-xl font-light uppercase tracking-wider text-white mb-6 font-mono">AI / LLM CORE</h3>
-              <div className="space-y-3 flex flex-col items-start">
-                {[
-                  'LangChain',
-                  'Model Context Protocol (MCP)',
-                  'OpenAI GPT-4o',
-                  'Groq Llama 3',
-                  'Gemini 2.0',
-                  'OpenRouter APIs',
-                  'ChromaDB (Vector)',
-                  'ReAct Orchestration',
-                  'TensorFlow & PyTorch',
-                  'Scikit-learn'
-                ].map(skill => (
-                  <div key={skill} className="flex items-center gap-3 group/skill cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent/40 group-hover/skill:bg-accent transition-all duration-300" />
-                    <span className="text-sm font-light text-white/60 group-hover/skill:text-white transition-all duration-300">{skill}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Category 2: Full-Stack */}
-            <div className="arsenal-card p-8 rounded-xl border border-white/10 bg-card/20 backdrop-blur-xl hover:border-accent/40 hover:shadow-[0_0_20px_rgba(16,217,129,0.05)] transition-all duration-500 text-left">
-              <div className="w-8 h-8 rounded bg-accent/5 border border-accent/25 flex items-center justify-center text-accent mb-6 font-mono text-sm">
-                02
-              </div>
-              <h3 className="text-xl font-light uppercase tracking-wider text-white mb-6 font-mono">FULL-STACK HUB</h3>
-              <div className="space-y-3 flex flex-col items-start">
-                {[
-                  'React 18/19 & Vite',
-                  'TypeScript & JavaScript',
-                  'FastAPI & asyncio',
-                  'Pydantic v2',
-                  'Tailwind CSS 4.0',
-                  'Three.js & Framer Motion',
-                  'Recharts',
-                  'ReactFlow'
-                ].map(skill => (
-                  <div key={skill} className="flex items-center gap-3 group/skill cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent/40 group-hover/skill:bg-accent transition-all duration-300" />
-                    <span className="text-sm font-light text-white/60 group-hover/skill:text-white transition-all duration-300">{skill}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Category 3: Systems */}
-            <div className="arsenal-card p-8 rounded-xl border border-white/10 bg-card/20 backdrop-blur-xl hover:border-accent/40 hover:shadow-[0_0_20px_rgba(16,217,129,0.05)] transition-all duration-500 text-left">
-              <div className="w-8 h-8 rounded bg-accent/5 border border-accent/25 flex items-center justify-center text-accent mb-6 font-mono text-sm">
-                03
-              </div>
-              <h3 className="text-xl font-light uppercase tracking-wider text-white mb-6 font-mono">SYSTEMS & EXECUTION</h3>
-              <div className="space-y-3 flex flex-col items-start">
-                {[
-                  'Docker & docker-compose',
-                  'Redis & Queue Architecture',
-                  'PostgreSQL & MySQL & SQLite',
-                  'Elasticsearch',
-                  'Playwright Crawling',
-                  'JWT & OAuth2 (Google / Azure AD)',
-                  'bcrypt & RBAC',
-                  'Raw SQL & Hybrid DB Architecture',
-                  'Pandas & Parquet Exports',
-                  'Git & Linux'
-                ].map(skill => (
-                  <div key={skill} className="flex items-center gap-3 group/skill cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent/40 group-hover/skill:bg-accent transition-all duration-300" />
-                    <span className="text-sm font-light text-white/60 group-hover/skill:text-white transition-all duration-300">{skill}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Category 4: Languages */}
-            <div className="arsenal-card p-8 rounded-xl border border-white/10 bg-card/20 backdrop-blur-xl hover:border-accent/40 hover:shadow-[0_0_20px_rgba(16,217,129,0.05)] transition-all duration-500 text-left">
-              <div className="w-8 h-8 rounded bg-accent/5 border border-accent/25 flex items-center justify-center text-accent mb-6 font-mono text-sm">
-                04
-              </div>
-              <h3 className="text-xl font-light uppercase tracking-wider text-white mb-6 font-mono">LANGUAGES</h3>
-              <div className="space-y-3 flex flex-col items-start">
-                {[
-                  'Python',
-                  'C & C++',
-                  'Java',
-                  'TypeScript',
-                  'JavaScript',
-                  'SQL'
-                ].map(skill => (
-                  <div key={skill} className="flex items-center gap-3 group/skill cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent/40 group-hover/skill:bg-accent transition-all duration-300" />
-                    <span className="text-sm font-light text-white/60 group-hover/skill:text-white transition-all duration-300">{skill}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Category 5: Coursework */}
-            <div className="arsenal-card p-8 rounded-xl border border-white/10 bg-card/20 backdrop-blur-xl hover:border-accent/40 hover:shadow-[0_0_20px_rgba(16,217,129,0.05)] transition-all duration-500 text-left">
-              <div className="w-8 h-8 rounded bg-accent/5 border border-accent/25 flex items-center justify-center text-accent mb-6 font-mono text-sm">
-                05
-              </div>
-              <h3 className="text-xl font-light uppercase tracking-wider text-white mb-6 font-mono">COURSEWORK</h3>
-              <div className="space-y-3 flex flex-col items-start">
-                {[
-                  'Data Structures & Algorithms',
-                  'Database Management Systems',
-                  'Operating Systems',
-                  'Object Oriented Programming',
-                  'Computer Networks & Communications',
-                  'Software Engineering',
-                  'Machine Learning Fundamentals',
-                  'Probability & Statistics',
-                  'Linear Algebra',
-                  'Discrete Mathematics'
-                ].map(skill => (
-                  <div key={skill} className="flex items-center gap-3 group/skill cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent/40 group-hover/skill:bg-accent transition-all duration-300" />
-                    <span className="text-sm font-light text-white/60 group-hover/skill:text-white transition-all duration-300">{skill}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
+      {/* CHAPTER 3 — THE ARSENAL (lazy-loaded) */}
+      <Suspense fallback={<div className="h-screen" />}>
+        <ArsenalSection ref={arsenalRef} />
+      </Suspense>
 
 
-      {/* CHAPTER 4 — THE WIN (Samsung PRISM cinematic unlock) */}
-      <section 
-        id="chapter-achievements" 
-        ref={winRef}
-        className="relative w-full min-h-screen py-24 md:py-32 flex items-center justify-center bg-[#020202] border-t border-white/5"
-      >
+        {/* CHAPTER 4 — THE WIN (Samsung PRISM cinematic unlock) */}
+        <section 
+          id="chapter-achievements" 
+          ref={winRef}
+          className="relative w-full min-h-screen py-12 md:py-32 px-4 flex items-center justify-center bg-[#020202] border-t border-white/5 scroll-mt-0"
+        >
         {/* Floating particle canvas mock background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="triumph-glow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/5 rounded-full blur-[140px] opacity-60" />
@@ -1612,6 +1418,8 @@ export default function Home() {
           {/* Custom micro sparks particle mock */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.85))] -z-10" />
         </div>
+
+        <TriumphConfetti />
 
         <div className="max-w-4xl mx-auto w-full flex flex-col items-center justify-center text-center px-6 select-none">
           
@@ -1651,69 +1459,11 @@ export default function Home() {
           </div>
 
         </div>
-      </section>
+        </section>
 
-
-      {/* CHAPTER 5 — WHAT'S NEXT (Minimalist Confident Outro / Contact) */}
-      <section 
-        id="chapter-contact" 
-        className="contact-section relative w-full h-screen bg-[#000000] border-t border-white/10 flex flex-col justify-between px-8 md:px-16 lg:px-24 py-20"
-      >
-        {/* Top bar */}
-        <div className="contact-topbar flex items-center justify-between select-none">
-          <span className="text-xs font-light uppercase tracking-[0.35em] text-accent">
-            05 // THE HORIZON
-          </span>
-          <span className="text-xs font-mono text-white/20">EST. 2026 // AD INFINITUM</span>
-        </div>
-
-        {/* Cinematic Main Call */}
-        <div className="max-w-4xl mx-auto w-full text-center md:text-left my-auto">
-          <h2 
-            className="contact-quote text-4xl md:text-6xl lg:text-7xl font-light tracking-tight text-white mb-6"
-            style={{ fontFamily: 'var(--font-display)', lineHeight: '1.2' }}
-          >
-            "The next chapter <br className="hidden md:inline" />
-            <span className="text-accent italic font-normal">isn't written yet</span>."
-          </h2>
-          
-          <p className="contact-desc text-base md:text-lg text-white/50 leading-relaxed font-light mb-12 max-w-xl">
-            Seeking complex architectures to plan, secure, and accelerate. Let's create systems that think.
-          </p>
-
-          {/* Social CTAs */}
-          <div className="contact-ctas flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-start">
-            <a 
-              href="mailto:ganeshbamalwa89@gmail.com" 
-              className="glass-btn flex items-center gap-2 pointer-events-auto cursor-pointer w-full md:w-auto justify-center"
-            >
-              Email Work
-            </a>
-            <a 
-              href="https://linkedin.com/in/ganeshbamalwa" 
-              target="_blank" 
-              rel="noreferrer" 
-              className="glass-btn outline-btn pointer-events-auto cursor-pointer w-full md:w-auto justify-center"
-            >
-              LinkedIn
-            </a>
-            <a 
-              href="https://github.com/GaneshBamalwa" 
-              target="_blank" 
-              rel="noreferrer" 
-              className="glass-btn outline-btn pointer-events-auto cursor-pointer w-full md:w-auto justify-center"
-            >
-              GitHub
-            </a>
-          </div>
-        </div>
-
-        {/* Footer info bar */}
-        <div className="contact-footer flex flex-col md:flex-row items-center justify-between border-t border-white/5 pt-8 text-[11px] font-mono text-white/25 select-none gap-4">
-          <span>DESIGNED FOR LUXURY // ENGINEERED FOR EXCELLENCE</span>
-          <span>© 2026 GANESH BAMALWA. ALL RIGHTS RESERVED.</span>
-        </div>
-      </section>
+      <Suspense fallback={<div className="h-screen" />}>
+        <ContactSection />
+      </Suspense>
 
       {/* Volumetric styling for flow diagrams */}
       <style>{`
@@ -1742,8 +1492,11 @@ export default function Home() {
         }
       `}</style>
         
-      {/* Réne Recruiter AI chatbot interface */}
-      <ReneChatbot />
+      {loadReneChat && (
+        <Suspense fallback={null}>
+          <ReneChatbot />
+        </Suspense>
+      )}
     </div>
   );
 }

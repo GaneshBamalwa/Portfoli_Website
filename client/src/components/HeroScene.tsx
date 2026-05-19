@@ -1,12 +1,20 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, memo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment, PerspectiveCamera, Preload, MeshTransmissionMaterial } from '@react-three/drei';
+import {
+  AdaptiveDpr,
+  AdaptiveEvents,
+  Environment,
+  PerspectiveCamera,
+  Preload,
+  MeshTransmissionMaterial,
+} from '@react-three/drei';
 import * as THREE from 'three';
 import { Diamond, createBrilliantCutDiamond } from './Diamond';
 import { CinematicEffects } from './CinematicEffects';
 import { useAtom } from 'jotai';
 import { diamondRotationAtom, diamondLightingAtom, scrollProgressAtom } from '@/lib/atoms';
 import InputManager from '@/lib/inputManager';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
 import gsap from 'gsap';
 
 /**
@@ -21,7 +29,7 @@ import gsap from 'gsap';
  * - Luxury product commercial aesthetic (Apple/Unreal Engine level)
  */
 
-function SceneContent() {
+function SceneContent({ isMobile }: { isMobile: boolean }) {
   const keyLightRef = useRef<THREE.Light>(null);
   const rimLight1Ref = useRef<THREE.Light>(null);
   const rimLight2Ref = useRef<THREE.Light>(null);
@@ -107,6 +115,8 @@ function SceneContent() {
 
   // Update lighting and camera with cinematic choreography
   useFrame((state) => {
+    if (isMobile && state.gl.info.render.frame % 2 !== 0) return;
+
     const time = state.clock.getElapsedTime();
     
     // Cinematic camera dolly motion - slow, controlled movement
@@ -177,13 +187,13 @@ function SceneContent() {
           metalness={0}
           clearcoat={1}
           clearcoatRoughness={0.12}
-          chromaticAberration={0.06}
+          chromaticAberration={0}
           anisotropy={0.1}
           distortion={0.0}
           distortionScale={0}
           temporalDistortion={0}
-          samples={20}
-          resolution={1024}
+          samples={isMobile ? 2 : 8}
+          resolution={256}
           backside
           toneMapped
           side={THREE.DoubleSide}
@@ -218,10 +228,10 @@ function SceneContent() {
   );
 }
 
-export function HeroScene() {
+function HeroSceneComponent() {
   const [, setScrollProgress] = useAtom(scrollProgressAtom);
+  const isMobile = useMobileDetect();
 
-  // Handle mouse movement for parallax
   useEffect(() => {
     // Handle scroll for rotation and lighting changes
     const handleScroll = () => {
@@ -243,8 +253,8 @@ export function HeroScene() {
   return (
     <Canvas
       className="w-full h-screen"
-      dpr={[1, 1.5]}
-      performance={{ min: 0.5, max: 1 }}
+      dpr={[1, 2]}
+      performance={{ min: 0.5 }}
       gl={{
         antialias: true,
         alpha: false,
@@ -252,11 +262,12 @@ export function HeroScene() {
         depth: true,
       }}
     >
-      {/* Camera positioned to frame entire diamond with negative space */}
-      {/* Diamond should occupy ~30-45% of viewport height */}
-      {/* 85mm lens equivalent vertical FOV (~29 degrees) for tight product framing */}
+      <AdaptiveDpr pixelated />
+      <AdaptiveEvents />
       <PerspectiveCamera makeDefault position={[0, 0, 5.5]} fov={29} />
-      <SceneContent />
+      <SceneContent isMobile={isMobile} />
     </Canvas>
   );
 }
+
+export const HeroScene = memo(HeroSceneComponent);

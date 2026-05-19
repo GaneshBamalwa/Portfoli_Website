@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Send, X, Sparkles, SendHorizontal } from 'lucide-react';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
 
 interface Message {
   role: 'user' | 'rene';
@@ -12,11 +13,13 @@ import { useAtom } from 'jotai';
 import { reneChatOpenAtom, activeChapterAtom } from '@/lib/atoms';
 import { sendReneMessage } from '@/lib/reneApi';
 
-export function ReneLauncher({ onClick, className, style }: { onClick: () => void; className?: string; style?: React.CSSProperties }) {
+export function ReneLauncher({ onClick, className, style, showIdlePrompt }: { onClick: () => void; className?: string; style?: React.CSSProperties; showIdlePrompt?: boolean }) {
+  const isMobile = useMobileDetect();
+
   return (
     <motion.button
       onClick={onClick}
-      whileHover={{ scale: 1.05, y: -2 }}
+      whileHover={isMobile ? undefined : { scale: 1.05, y: -2 }}
       whileTap={{ scale: 0.95 }}
       className={`flex items-center justify-between gap-2 px-3 py-1 rounded-full border border-white/[0.08] bg-[#050505]/80 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.5)] cursor-pointer text-white relative group ${className || ''}`}
       style={{
@@ -24,33 +27,70 @@ export function ReneLauncher({ onClick, className, style }: { onClick: () => voi
         ...style
       }}
     >
+      {/* Pulse glow effect when idle */}
+      {showIdlePrompt && (
+        <motion.div
+          className="absolute inset-0 rounded-full border border-accent/40 bg-accent/5"
+          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          aria-hidden
+        />
+      )}
+
       {/* Symmetric left container for perfect text centering */}
-      <div className="w-6 h-6 flex items-center justify-center select-none">
+      <div className="w-6 h-6 flex items-center justify-center select-none relative z-10">
         <div className="relative w-1.5 h-1.5 flex items-center justify-center">
           <span className="absolute inline-flex h-full w-full rounded-full bg-accent/40 animate-ping" />
           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent" />
         </div>
       </div>
 
-      <span className="text-[10px] uppercase tracking-[0.2em] font-mono font-medium text-white/90 group-hover:text-accent transition-colors duration-300 text-center flex-1 leading-none flex items-center justify-center -mt-[1px]">
+      <span className="text-[10px] uppercase tracking-[0.2em] font-mono font-medium text-white/90 group-hover:text-accent transition-colors duration-300 text-center flex-1 leading-none flex items-center justify-center -mt-[1px] relative z-10">
         Talk to Réne
       </span>
       
       {/* Right container */}
-      <div className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-black transition-all duration-300 select-none">
+      <div className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-black transition-all duration-300 select-none relative z-10">
         <MessageSquare className="w-3 h-3" />
       </div>
+
+      {/* Idle tooltip */}
+      {showIdlePrompt && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          className="absolute bottom-full mb-3 -left-12 w-32 px-3 py-2 rounded-lg bg-accent/95 text-black text-xs font-medium text-center whitespace-nowrap pointer-events-none z-50 shadow-lg"
+          aria-label="Ask me anything"
+        >
+          Ask me anything
+          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-accent/95" />
+        </motion.div>
+      )}
     </motion.button>
   );
 }
 
-export function ReneChatbot() {
+function ReneChatbotComponent() {
   const [isOpen, setIsOpen] = useAtom(reneChatOpenAtom);
   const [activeChapter] = useAtom(activeChapterAtom);
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // ── Rate Limiting State ──────────────────────────────────────
+  const [cooldownTimeRemaining, setCooldownTimeRemaining] = useState(0);
+  const [sessionLimitReached, setSessionLimitReached] = useState(false);
+  const messageCountRef = useRef(1); // Start with 1 (intro message from Réne)
+  const lastMessageSentTimeRef = useRef(0);
+  const isLoadingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // ── Idle Animation State ──────────────────────────────────────
+  const [showIdlePrompt, setShowIdlePrompt] = useState(false);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastInteractionRef = useRef<number>(Date.now());
 
   // Pre-programmed client-side cached high-fidelity answers to guarantee instant, recruiter-grade, robust offline operation.
   const PRE_PROGRAMMED_ANSWERS: Record<string, string> = {
@@ -116,7 +156,69 @@ export function ReneChatbot() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     setMessages([introMessage]);
+    messageCountRef.current = 1; // Init counter with intro message
   }, []);
+
+  // ── Cooldown Timer Effect ────────────────────────────────────
+  useEffect(() => {
+    if (cooldownTimeRemaining <= 0) return;
+
+    const interval = setInterval(() => {
+      setCooldownTimeRemaining((prev) => {
+        const newVal = prev - 1;
+        return newVal <= 0 ? 0 : newVal;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [cooldownTimeRemaining]);
+
+  // ── Idle Prompt Effect (shows after 15s of inactivity) ────────
+  useEffect(() => {
+    const startIdleTimer = () => {
+      // Clear existing timer
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+
+      // Show idle prompt after 15 seconds of inactivity
+      idleTimerRef.current = setTimeout(() => {
+        if (!isOpen) { // Only show if chat is closed
+          setShowIdlePrompt(true);
+        }
+      }, 15000);
+    };
+
+    const resetIdleTimer = () => {
+      lastInteractionRef.current = Date.now();
+      setShowIdlePrompt(false);
+      startIdleTimer();
+    };
+
+    // Start timer on mount
+    startIdleTimer();
+
+    // Track user interactions
+    const handleInteraction = () => {
+      resetIdleTimer();
+    };
+
+    // Listen for user activity (global)
+    window.addEventListener('mousemove', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('scroll', handleInteraction);
+
+    return () => {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+      window.removeEventListener('mousemove', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('scroll', handleInteraction);
+    };
+  }, [isOpen]);
 
   const saveChatHistory = (updatedMessages: Message[]) => {
     setMessages(updatedMessages);
@@ -145,8 +247,22 @@ export function ReneChatbot() {
   }, [isOpen]);
 
   const handleSendMessage = async (textToSend: string) => {
+    // ── Rate Limiting Checks ─────────────────────────────────────
+    if (isLoadingRef.current) return; // Hard-block concurrent calls
+    if (sessionLimitReached) return; // Session limit reached
+    if (cooldownTimeRemaining > 0) return; // Cooldown still active
+
     const trimmed = textToSend.trim();
-    if (!trimmed || isLoading) return;
+    if (!trimmed) return; // Empty message
+
+    // ── Check session message cap (max 15 messages per session) ───
+    if (messageCountRef.current >= 15) {
+      setSessionLimitReached(true);
+      return;
+    }
+
+    isLoadingRef.current = true;
+    setIsLoading(true);
 
     const userMsg: Message = {
       role: 'user',
@@ -157,10 +273,18 @@ export function ReneChatbot() {
     const newHistory = [...messages, userMsg];
     saveChatHistory(newHistory);
     setInputMessage('');
-    setIsLoading(true);
+    messageCountRef.current += 1; // Increment counter for user message
 
     try {
-      const responseText = await sendReneMessage(trimmed);
+      // ── Timeout Guard: 20 seconds AbortController ────────────────
+      abortControllerRef.current = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortControllerRef.current?.abort();
+      }, 20000);
+
+      const responseText = await sendReneMessage(trimmed, abortControllerRef.current.signal);
+      clearTimeout(timeoutId);
+
       const reneMsg: Message = {
         role: 'rene',
         content: responseText,
@@ -168,15 +292,35 @@ export function ReneChatbot() {
       };
 
       saveChatHistory([...newHistory, reneMsg]);
-    } catch (error) {
-      console.error('Failed to receive response from René AI:', error);
-      const errMsg: Message = {
-        role: 'rene',
-        content: "Réne is temporarily unavailable right now.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      saveChatHistory([...newHistory, errMsg]);
+      messageCountRef.current += 1; // Increment counter for Réne response
+
+      // ── Start 8-second cooldown ──────────────────────────────────
+      lastMessageSentTimeRef.current = Date.now();
+      setCooldownTimeRemaining(8);
+    } catch (error: any) {
+      // Handle timeout specifically
+      if (error?.name === 'AbortError' || error?.message === 'Aborted') {
+        const timeoutMsg: Message = {
+          role: 'rene',
+          content: "Réne is waking up — try again in a moment.",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        saveChatHistory([...newHistory, timeoutMsg]);
+        messageCountRef.current += 1;
+      } else {
+        console.error('Failed to receive response from René AI:', error);
+        const errMsg: Message = {
+          role: 'rene',
+          content: "Réne is temporarily unavailable right now.",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        saveChatHistory([...newHistory, errMsg]);
+        messageCountRef.current += 1;
+      }
+      // Start cooldown even on error
+      setCooldownTimeRemaining(8);
     } finally {
+      isLoadingRef.current = false;
       setIsLoading(false);
     }
   };
@@ -225,7 +369,7 @@ export function ReneChatbot() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !sessionLimitReached && cooldownTimeRemaining <= 0 && !isLoadingRef.current) {
       handleSendMessage(inputMessage);
     }
   };
@@ -239,6 +383,12 @@ export function ReneChatbot() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages([introMessage]);
+      
+      // Reset rate limiting counters
+      messageCountRef.current = 1;
+      setCooldownTimeRemaining(0);
+      setSessionLimitReached(false);
+      lastMessageSentTimeRef.current = 0;
     } catch (e) {}
   };
 
@@ -252,7 +402,7 @@ export function ReneChatbot() {
           transition={{ type: 'spring', stiffness: 260, damping: 20 }}
           className="fixed bottom-6 right-6 z-[9900]"
         >
-          <ReneLauncher onClick={() => setIsOpen(true)} />
+          <ReneLauncher onClick={() => { setIsOpen(true); setShowIdlePrompt(false); }} showIdlePrompt={showIdlePrompt} />
         </motion.div>
       )}
 
@@ -381,7 +531,7 @@ export function ReneChatbot() {
               </div>
 
               {/* Bottom control quick replies */}
-              {messages.length === 1 && (
+              {messages.length === 1 && !sessionLimitReached && (
                 <div className="px-6 pb-2 select-none z-10">
                   <div className="text-[9px] uppercase tracking-[0.25em] text-white/25 mb-2 font-mono">
                     Suggested Inquiries
@@ -391,7 +541,8 @@ export function ReneChatbot() {
                       <button
                         key={idx}
                         onClick={() => handleSendMessage(q.text)}
-                        className="text-[10px] md:text-xs px-3 py-1.5 rounded-full border border-white/[0.04] bg-[#0c0c0c] hover:bg-[#151515] hover:border-accent/40 hover:text-accent transition-all duration-300 cursor-pointer"
+                        disabled={cooldownTimeRemaining > 0 || isLoading}
+                        className="text-[10px] md:text-xs px-3 py-1.5 rounded-full border border-white/[0.04] bg-[#0c0c0c] hover:bg-[#151515] hover:border-accent/40 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 cursor-pointer"
                       >
                         {q.label}
                       </button>
@@ -400,25 +551,41 @@ export function ReneChatbot() {
                 </div>
               )}
 
-              {/* Input controller */}
-              <div className="border-t border-white/[0.06] p-4 bg-[#080808]/90 backdrop-blur-md flex items-center gap-3 pointer-events-auto z-10">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Ask Réne about his technical work..."
-                  disabled={isLoading}
-                  className="flex-1 bg-[#0d0d0d] border border-white/[0.06] focus:border-accent/45 focus:outline-none rounded-xl px-5 py-3.5 text-xs md:text-sm text-white placeholder-white/25 transition-all duration-300 font-sans tracking-[0.03em]"
-                />
-                <button
-                  onClick={() => handleSendMessage(inputMessage)}
-                  disabled={isLoading || !inputMessage.trim()}
-                  className="w-11 h-11 rounded-xl bg-accent border border-accent/20 flex items-center justify-center text-black hover:bg-white hover:border-white/30 disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-black transition-all cursor-pointer shadow-lg"
-                >
-                  <SendHorizontal className="w-4 h-4 stroke-[2.5]" />
-                </button>
-              </div>
+              {/* ── Session Limit Reached Message ────────────────────── */}
+              {sessionLimitReached ? (
+                <div className="border-t border-white/[0.06] p-4 bg-[#080808]/90 backdrop-blur-md pointer-events-auto z-10">
+                  <div className="w-full px-5 py-3.5 rounded-xl border border-white/[0.08] bg-[#0d0d0d] text-xs md:text-sm text-white/70 text-center font-light">
+                    You've reached the limit for this session. Refresh to start a new conversation.
+                  </div>
+                </div>
+              ) : (
+                /* ── Normal Input Controller ────────────────────────── */
+                <div className="border-t border-white/[0.06] p-4 bg-[#080808]/90 backdrop-blur-md flex items-center gap-3 pointer-events-auto z-10">
+                  <div className="flex-1 flex flex-col gap-2">
+                    <input
+                      type="text"
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      placeholder={cooldownTimeRemaining > 0 ? `Please wait ${cooldownTimeRemaining}s...` : "Ask Réne about his technical work..."}
+                      disabled={isLoading || cooldownTimeRemaining > 0}
+                      className="flex-1 bg-[#0d0d0d] border border-white/[0.06] focus:border-accent/45 focus:outline-none rounded-xl px-5 py-3.5 text-xs md:text-sm text-white placeholder-white/25 disabled:opacity-50 transition-all duration-300 font-sans tracking-[0.03em]"
+                    />
+                    {cooldownTimeRemaining > 0 && (
+                      <div className="text-[11px] font-mono uppercase tracking-[0.15em] text-accent/70 text-center">
+                        Cooldown: {cooldownTimeRemaining}s remaining
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleSendMessage(inputMessage)}
+                    disabled={isLoading || !inputMessage.trim() || cooldownTimeRemaining > 0}
+                    className="w-11 h-11 rounded-xl bg-accent border border-accent/20 flex items-center justify-center text-black hover:bg-white hover:border-white/30 disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-black disabled:cursor-not-allowed transition-all cursor-pointer shadow-lg"
+                  >
+                    <SendHorizontal className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+              )}
             </motion.div>
           </div>
         )}
@@ -427,4 +594,6 @@ export function ReneChatbot() {
   );
 }
 
+const ReneChatbot = memo(ReneChatbotComponent);
 export default ReneChatbot;
+export { ReneChatbot };
