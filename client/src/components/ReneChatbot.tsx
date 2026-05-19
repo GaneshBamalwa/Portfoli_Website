@@ -237,13 +237,19 @@ function ReneChatbotComponent() {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'relative';
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.height = '100%';
     } else {
       document.body.style.overflow = '';
       document.body.style.position = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
     }
     return () => {
       document.body.style.overflow = '';
       document.body.style.position = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
     };
   }, [isOpen]);
 

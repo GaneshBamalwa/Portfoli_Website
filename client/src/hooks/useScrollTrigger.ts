@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDeviceTier } from '@/hooks/useDeviceTier';
+import { useAtomValue } from 'jotai';
+import { reneChatOpenAtom } from '@/lib/atoms';
 import gsap from 'gsap';
 
 /**
@@ -16,9 +18,11 @@ export function useScrollTrigger() {
   const isAnimating = useRef(false);
   const touchStartY = useRef(0);
   const tier = useDeviceTier();
+  const isChatOpen = useAtomValue(reneChatOpenAtom);
 
   useEffect(() => {
     if (tier === 'low') return;
+    if (isChatOpen) return;
 
     const handleWheel = (e: WheelEvent) => {
       const scrollY = window.scrollY;
@@ -202,5 +206,5 @@ export function useScrollTrigger() {
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [tier, isChatOpen]);
 }
