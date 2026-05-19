@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type TouchEvent } from 'react';
+import { motion } from 'framer-motion';
 import { SplineHero } from '@/components/SplineHero';
 import HeroContent from '@/components/HeroContent';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
@@ -36,6 +37,7 @@ export default function Home() {
   const [isScrolling, setIsScrolling] = useState(false);
   const [activeProject, setActiveProject] = useState(0);
   const [loadReneChat, setLoadReneChat] = useState(false);
+  const [showSwipeHint, setShowSwipeHint] = useState(true);
   const [isReneOpen] = useAtom(reneChatOpenAtom);
   const isMobile = useMobileDetect();
 
@@ -47,6 +49,8 @@ export default function Home() {
   const winRef = useRef<HTMLDivElement>(null);
   const flashOverlayRef = useRef<HTMLDivElement>(null);
   const flashOverlayRef2 = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
 
   // Chapter mapping for navigation
   const CHAPTERS = [
@@ -61,6 +65,20 @@ export default function Home() {
   useEffect(() => {
     if (isReneOpen) setLoadReneChat(true);
   }, [isReneOpen]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setShowSwipeHint(false);
+      return;
+    }
+
+    setShowSwipeHint(true);
+    const timer = window.setTimeout(() => {
+      setShowSwipeHint(false);
+    }, 2000);
+
+    return () => window.clearTimeout(timer);
+  }, [isMobile, activeProject]);
 
   useEffect(() => {
     setupChapterFlashes(flashOverlayRef2);
@@ -540,6 +558,26 @@ export default function Home() {
     window.scrollTo({ top: Math.round(target), behavior: 'smooth' });
   };
 
+  const handleProjectTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = event.changedTouches[0].screenX;
+    touchStartY.current = event.changedTouches[0].screenY;
+  };
+
+  const handleProjectTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    const touchEndX = event.changedTouches[0].screenX;
+    const touchEndY = event.changedTouches[0].screenY;
+    const distanceX = touchStartX.current - touchEndX;
+    const distanceY = Math.abs(touchStartY.current - touchEndY);
+
+    if (distanceY > 80) return;
+
+    if (distanceX > 50) {
+      handleNavigateProject(activeProject + 1);
+    } else if (distanceX < -50) {
+      handleNavigateProject(activeProject - 1);
+    }
+  };
+
   return (
     <div className={`relative w-full bg-background text-[#f5f5f5] overflow-x-hidden select-none`} style={{ touchAction: 'pan-y' }}>
       
@@ -784,14 +822,16 @@ export default function Home() {
         <div 
           ref={horizontalRef}
           className="sticky top-0 h-screen w-[300vw] flex flex-row items-center overflow-hidden"
+          onTouchStart={handleProjectTouchStart}
+          onTouchEnd={handleProjectTouchEnd}
         >
           
           {/* PANEL 2A: ATLAS PROJECT (Node Graph reveal) */}
-          <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-8 md:px-16 lg:px-24 py-16 gap-10 transition-all duration-700 ease-out ${
+          <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 transition-all duration-700 ease-out ${
             activeProject === 0 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
           }`}>
                  {/* Project Spec details */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4">
+            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4 max-md:max-w-full">
               <span className="text-xs font-light uppercase tracking-[0.35em] text-accent mb-3 block">
                 02 // THE BUILD
               </span>
@@ -817,25 +857,14 @@ export default function Home() {
               >
                 A distributed multi-agent AI orchestration platform. Built to take natural language requests, decompose them into structured multi-step workflows, and execute them across specialized services — with every reasoning step visible in real time.
               </p>
-              
-              {/* Tech Tags */}
-              <div className={`flex flex-wrap gap-2.5 mb-6 transition-all duration-700 delay-200 ${
-                activeProject === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}>
-                {['Python', 'FastAPI', 'LangChain', 'React', 'TypeScript', 'Redis', 'ChromaDB', 'Docker', 'ReactFlow', 'Google APIs', 'MCP'].map(tag => (
-                  <span key={tag} className="tech-pill-atlas">
-                    {tag}
-                  </span>
-                ))}
-              </div>
 
-              {/* GitHub Link Button */}
-              <div className="mb-8">
+              {/* GitHub Link Button — its own row above tags */}
+              <div className="mb-4 max-md:order-4 md:order-none max-md:w-full">
                 <a 
                   href="https://github.com/GaneshBamalwa/atlas" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="github-project-btn github-btn-atlas pointer-events-auto"
+                  className="github-project-btn github-btn-atlas pointer-events-auto max-md:w-full max-md:justify-center"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
@@ -843,19 +872,30 @@ export default function Home() {
                   <span>GitHub</span>
                 </a>
               </div>
+
+              {/* Tech Tags — wrapping row below GitHub button */}
+              <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
+                activeProject === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+              }`}>
+                {['Python', 'FastAPI', 'LangChain', 'React', 'TypeScript', 'Redis', 'ChromaDB', 'Docker', 'ReactFlow', 'Google APIs', 'MCP'].map(tag => (
+                  <span key={tag} className="tech-pill-atlas whitespace-nowrap flex-shrink-0">
+                    {tag}
+                  </span>
+                ))}
+              </div>
  
               {/* Interaction instruction */}
-              <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-green uppercase tracking-wider select-none">
+              <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-green uppercase tracking-wider select-none max-md:order-6 md:order-none">
                 <span>&gt; Hover nodes on the graph to inspect runtime states.</span>
                 <span className="terminal-cursor font-bold">_</span>
               </div>
             </div>
  
             {/* Visual Interactive Node Graph */}
-            <div className="w-full lg:w-[50%] h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card">
+            <div className="w-full lg:w-[50%] h-64 md:h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card overflow-x-auto md:overflow-visible">
               <div className="absolute inset-0 project-right-panel project-right-panel-atlas -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(232, 232, 232, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
               
-              <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl" style={{ overflow: 'visible' }}>
+              <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
                 <defs>
                   {/* Glowing neon shadow filter */}
                   <filter id="glow-platinum" x="-20%" y="-20%" width="140%" height="140%">
@@ -979,11 +1019,11 @@ export default function Home() {
           </div>
 
           {/* PANEL 2B: NEXORA PROJECT */}
-          <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-8 md:px-16 lg:px-24 py-16 gap-10 bg-[#060606] transition-all duration-700 ease-out ${
+          <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#060606] transition-all duration-700 ease-out ${
             activeProject === 1 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
           }`}>
                  {/* Description */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4">
+            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4 max-md:max-w-full">
               <span className="text-xs font-light uppercase tracking-[0.35em] text-[#b464ff] mb-3 block">
                 02 // THE BUILD
               </span>
@@ -1000,29 +1040,29 @@ export default function Home() {
                 "Built to be secure, scalable, and actually nice to use."
               </p>
               <p 
-                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-8 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
+                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 A production-ready AI-powered customer support platform. Three user tiers, 25+ REST endpoints, a full ticket lifecycle, and an AI engine that triages requests and assists agents in real time.
               </p>
               
-              <div className={`flex flex-wrap gap-2.5 mb-6 transition-all duration-700 delay-200 ${
+              <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
                 activeProject === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
               }`}>
                 {['FastAPI', 'React 19', 'Gemini 2.0', 'MySQL', 'SQLite', 'JWT', 'bcrypt', 'Three.js', 'Framer Motion', 'Tailwind CSS', 'Recharts'].map(tag => (
-                  <span key={tag} className="tech-pill-nexora">
+                  <span key={tag} className="tech-pill-nexora whitespace-nowrap flex-shrink-0">
                     {tag}
                   </span>
                 ))}
               </div>
 
               {/* GitHub Link Button */}
-              <div className="mb-8 flex flex-col gap-4">
+              <div className="mb-8 flex flex-col gap-4 max-md:order-4 md:order-none max-md:w-full">
                 <a 
                   href="https://github.com/GaneshBamalwa/nexora" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="github-project-btn github-btn-nexora w-max pointer-events-auto"
+                  className="github-project-btn github-btn-nexora w-max pointer-events-auto max-md:w-full max-md:justify-center"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
@@ -1031,7 +1071,7 @@ export default function Home() {
                 </a>
                 
                 {/* Interaction instruction */}
-                <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-purple uppercase tracking-wider select-none">
+                <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-purple uppercase tracking-wider select-none max-md:order-6 md:order-none">
                   <span>&gt; Hover nodes on the graph to inspect support workflow.</span>
                   <span className="terminal-cursor font-bold">_</span>
                 </div>
@@ -1039,10 +1079,10 @@ export default function Home() {
             </div>
  
             {/* Visual Interactive Node Graph */}
-            <div className="w-full lg:w-[50%] h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card">
+            <div className="w-full lg:w-[50%] h-64 md:h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card overflow-x-auto md:overflow-visible">
               <div className="absolute inset-0 project-right-panel project-right-panel-nexora -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(180, 100, 255, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
               
-              <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl" style={{ overflow: 'visible' }}>
+              <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
                 <defs>
                   {/* Glowing neon shadow filter */}
                   <filter id="glow-purple" x="-30%" y="-30%" width="160%" height="160%">
@@ -1176,11 +1216,11 @@ export default function Home() {
           </div>
 
           {/* PANEL 2C: STRATOS PROJECT */}
-          <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-8 md:px-16 lg:px-24 py-16 gap-10 bg-[#040404] border-l border-white/5 transition-all duration-700 ease-out ${
+          <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#040404] border-l border-white/5 transition-all duration-700 ease-out ${
             activeProject === 2 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
           }`}>
                  {/* Project Spec details */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4">
+            <div className="w-full lg:w-[45%] flex flex-col justify-center select-none text-left z-20 max-md:gap-3 max-md:p-4 max-md:max-w-full">
               <span className="text-xs font-light uppercase tracking-[0.35em] text-amber-500 mb-3 block">
                 02 // THE BUILD // PIPELINE MACHINE
               </span>
@@ -1200,30 +1240,30 @@ export default function Home() {
               </p>
               
               <p 
-                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-8 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
+                className="text-base md:text-lg text-white/70 leading-relaxed font-light mb-6 max-w-xl project-description-text max-md:line-clamp-3 max-md:overflow-hidden"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 A highly-distributed web scraping and data extraction infrastructure. Operates a Redis-backed queue crawler and a universal LLM-assisted parsing agent. Built for production-grade scraping pipelines that require rigorous data guarantees, dead-letter queue safety, and multiple format outputs.
               </p>
               
               {/* Tech Tags */}
-              <div className={`flex flex-wrap gap-2.5 mb-6 transition-all duration-700 delay-200 ${
+              <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
                 activeProject === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
               }`}>
                 {['Python', 'FastAPI', 'asyncio', 'Redis', 'PostgreSQL', 'Elasticsearch', 'Playwright', 'Groq', 'Docker', 'Pandas', 'Selectolax'].map(tag => (
-                  <span key={tag} className="tech-pill-stratos">
+                  <span key={tag} className="tech-pill-stratos whitespace-nowrap flex-shrink-0">
                     {tag}
                   </span>
                 ))}
               </div>
 
               {/* GitHub Link Button */}
-              <div className="mb-8">
+              <div className="mb-8 max-md:order-4 md:order-none max-md:w-full">
                 <a 
                   href="https://github.com/GaneshBamalwa/stratos" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="github-project-btn github-btn-stratos pointer-events-auto"
+                  className="github-project-btn github-btn-stratos pointer-events-auto max-md:w-full max-md:justify-center"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
@@ -1233,17 +1273,17 @@ export default function Home() {
               </div>
  
               {/* Interaction instruction */}
-              <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-amber uppercase tracking-wider select-none">
+              <div className="flex items-center gap-2 text-[11px] font-mono hint-terminal-prompt-amber uppercase tracking-wider select-none max-md:order-6 md:order-none">
                 <span>&gt; Hover machine components to inspect telemetry.</span>
                 <span className="terminal-cursor font-bold">_</span>
               </div>
             </div>
  
             {/* Industrial SVG architecture diagram */}
-            <div className="w-full lg:w-[50%] h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card">
+            <div className="w-full lg:w-[50%] h-64 md:h-[50vh] lg:h-[70vh] flex items-center justify-center relative hover-lift-card overflow-x-auto md:overflow-visible">
               <div className="absolute inset-0 project-right-panel project-right-panel-stratos -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
               
-              <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl" style={{ overflow: 'visible' }}>
+              <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
                 <defs>
                   {/* Glowing amber shadow filter */}
                   <filter id="glow-amber" x="-20%" y="-20%" width="140%" height="140%">
@@ -1350,13 +1390,53 @@ export default function Home() {
 
         </div>
 
-        {/* Fixed controls layer pinned to viewport while scrolling horizontally */}
-        <div className="absolute inset-0 pointer-events-none z-30 hidden md:block">
-          {/* Arrow Left */}
+        <div className="absolute inset-0 z-40 pointer-events-none md:hidden">
           <button
             onClick={() => handleNavigateProject(activeProject - 1)}
             disabled={activeProject === 0}
-            className={`absolute left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
+            className={`absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full border border-white/10 bg-black/75 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-300 focus:outline-none select-none active:scale-95 ${
+              activeProject === 0 ? 'opacity-20 pointer-events-none' : 'opacity-90'
+            }`}
+            title="Previous Project"
+            aria-label="Previous Project"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => handleNavigateProject(activeProject + 1)}
+            disabled={activeProject === 2}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full border border-white/10 bg-black/75 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-300 focus:outline-none select-none active:scale-95 ${
+              activeProject === 2 ? 'opacity-20 pointer-events-none' : 'opacity-90'
+            }`}
+            title="Next Project"
+            aria-label="Next Project"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+
+        <motion.p
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs tracking-widest text-center md:hidden pointer-events-none"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: showSwipeHint ? 1 : 0 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          aria-hidden
+        >
+          &larr; SWIPE TO EXPLORE &rarr;
+        </motion.p>
+
+        {/* Fixed controls layer pinned to viewport while scrolling horizontally */}
+        <div className="absolute inset-0 pointer-events-none z-30 hidden md:block">
+          {/* Arrow Left — hugged to the very edge so it never overlaps content */}
+          <button
+            onClick={() => handleNavigateProject(activeProject - 1)}
+            disabled={activeProject === 0}
+            className={`absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
               activeProject === 0 ? 'opacity-10 pointer-events-none' : 'opacity-70 hover:opacity-100'
             }`}
             title="Previous Project"
@@ -1366,11 +1446,11 @@ export default function Home() {
             </svg>
           </button>
 
-          {/* Arrow Right */}
+          {/* Arrow Right — hugged to the very edge so it never overlaps content */}
           <button
             onClick={() => handleNavigateProject(activeProject + 1)}
             disabled={activeProject === 2}
-            className={`absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
+            className={`absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
               activeProject === 2 ? 'opacity-10 pointer-events-none' : 'opacity-70 hover:opacity-100'
             }`}
             title="Next Project"
