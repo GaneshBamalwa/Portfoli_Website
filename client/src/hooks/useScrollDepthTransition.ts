@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -14,7 +15,11 @@ gsap.registerPlugin(ScrollTrigger);
  */
 
 export function useScrollDepthTransition() {
+  const tier = useDeviceTier();
+
   useEffect(() => {
+    if (tier === 'low') return;
+
     // Get the canvas element
     const canvas = document.querySelector('canvas');
     if (!canvas) return;

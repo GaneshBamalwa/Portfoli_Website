@@ -4,6 +4,7 @@ import { motion, useAnimation } from 'framer-motion';
 import { useAtom } from 'jotai';
 import { splineLoadedAtom, reneChatOpenAtom, activeChapterAtom } from '@/lib/atoms';
 import { ReneLauncher } from '@/components/ReneChatbot';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 
 function SplineHeroComponent() {
   const [loaded, setLoaded] = useAtom(splineLoadedAtom);
@@ -11,6 +12,7 @@ function SplineHeroComponent() {
   const [activeChapter] = useAtom(activeChapterAtom);
   const controls = useAnimation();
   const overlayControls = useAnimation();
+  const tier = useDeviceTier();
 
   useEffect(() => {
     // Start ambient overlays fade-in (nearly black -> subtle glow & grain)
@@ -104,7 +106,12 @@ function SplineHeroComponent() {
         }}
       >
         <div className="robot-container w-full h-full relative">
-          <Spline scene="https://prod.spline.design/KRXODn3OlcL24ra0/scene.splinecode" onLoad={handleSplineLoad} />
+          <div
+            className="w-full h-full"
+            style={tier === 'low' ? { pointerEvents: 'none' } : undefined}
+          >
+            <Spline scene="https://prod.spline.design/KRXODn3OlcL24ra0/scene.splinecode" onLoad={handleSplineLoad} />
+          </div>
 
           {/* Interactive "Talk to Réne" badge masking the Spline watermark */}
           {activeChapter === 0 && (

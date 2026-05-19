@@ -14,7 +14,7 @@ import { CinematicEffects } from './CinematicEffects';
 import { useAtom } from 'jotai';
 import { diamondRotationAtom, diamondLightingAtom, scrollProgressAtom } from '@/lib/atoms';
 import InputManager from '@/lib/inputManager';
-import { useMobileDetect } from '@/hooks/useMobileDetect';
+import { useDeviceTier, DeviceTier } from '@/hooks/useDeviceTier';
 import gsap from 'gsap';
 
 /**
@@ -29,7 +29,7 @@ import gsap from 'gsap';
  * - Luxury product commercial aesthetic (Apple/Unreal Engine level)
  */
 
-function SceneContent({ isMobile }: { isMobile: boolean }) {
+function SceneContent({ tier }: { tier: DeviceTier }) {
   const keyLightRef = useRef<THREE.Light>(null);
   const rimLight1Ref = useRef<THREE.Light>(null);
   const rimLight2Ref = useRef<THREE.Light>(null);
@@ -115,7 +115,8 @@ function SceneContent({ isMobile }: { isMobile: boolean }) {
 
   // Update lighting and camera with cinematic choreography
   useFrame((state) => {
-    if (isMobile && state.gl.info.render.frame % 2 !== 0) return;
+    if (tier === 'low') return;
+    if (tier === 'high' && state.gl.info.render.frame % 2 !== 0) return;
 
     const time = state.clock.getElapsedTime();
     
@@ -187,13 +188,13 @@ function SceneContent({ isMobile }: { isMobile: boolean }) {
           metalness={0}
           clearcoat={1}
           clearcoatRoughness={0.12}
-          chromaticAberration={0}
-          anisotropy={0.1}
+          chromaticAberration={tier === 'desktop' ? 0.06 : 0}
+          anisotropy={tier === 'desktop' ? 0.1 : 0}
           distortion={0.0}
           distortionScale={0}
           temporalDistortion={0}
-          samples={isMobile ? 2 : 8}
-          resolution={256}
+          samples={tier === 'desktop' ? 8 : tier === 'high' ? 4 : 2}
+          resolution={tier === 'desktop' ? 512 : 256}
           backside
           toneMapped
           side={THREE.DoubleSide}
@@ -230,7 +231,7 @@ function SceneContent({ isMobile }: { isMobile: boolean }) {
 
 function HeroSceneComponent() {
   const [, setScrollProgress] = useAtom(scrollProgressAtom);
-  const isMobile = useMobileDetect();
+  const tier = useDeviceTier();
 
   useEffect(() => {
     // Handle scroll for rotation and lighting changes
@@ -240,32 +241,64 @@ function HeroSceneComponent() {
       const scrolled = docHeight > 0 ? scrollTop / docHeight : 0;
       setScrollProgress(Math.min(scrolled, 1));
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Ensure InputManager is running for 3D consumers; we use it in the render loop
-    InputManager.start();
+    if (tier !== 'low') {
+      InputManager.start();
+    }
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [setScrollProgress]);
+  }, [setScrollProgress, tier]);
+
+  if (tier === 'low') {
+    return (
+      <img
+        src="/robot-static.webp"
+        alt=""
+        loading="eager"
+        // @ts-ignore
+        fetchPriority="high"
+        className="w-full h-full object-cover"
+      />
+    );
+  }
+
+  const canvasConfig = {
+    desktop: {
+      dpr: Math.min(window.devicePixelRatio, 2),
+      antialias: true,
+      powerPreference: 'high-performance',
+    },
+    high: {
+      dpr: Math.min(window.devicePixelRatio, 2),
+      antialias: false,
+      powerPreference: 'default',
+    },
+  };
+
+  const config = tier === 'desktop' ? canvasConfig.desktop : canvasConfig.high;
 
   return (
     <Canvas
       className="w-full h-screen"
-      dpr={[1, 2]}
+      dpr={config.dpr}
       performance={{ min: 0.5 }}
       gl={{
-        antialias: true,
-        alpha: false,
+        antialias: config.antialias,
+        powerPreference: config.powerPreference as any,
         stencil: false,
         depth: true,
+        alpha: false,
       }}
+      frameloop={tier === 'high' ? 'demand' : 'always'}
     >
       <AdaptiveDpr pixelated />
       <AdaptiveEvents />
       <PerspectiveCamera makeDefault position={[0, 0, 5.5]} fov={29} />
-      <SceneContent isMobile={isMobile} />
+      <SceneContent tier={tier} />
     </Canvas>
   );
 }

@@ -1,22 +1,20 @@
 import React, { memo, useEffect, useRef } from 'react';
 import { useAtom } from 'jotai';
 import { activeChapterAtom, subSceneAtom } from '@/lib/atoms';
-
-const DESKTOP_NODE_COUNT = 100;
-const MOBILE_NODE_RATIO = 0.35;
-const DESKTOP_CONNECT_SQ = 16900;
-const MOBILE_CONNECT_SQ = 6084;
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 
 function ParticleCanvasComponent() {
   const [activeChapter] = useAtom(activeChapterAtom);
   const [subScene] = useAtom(subSceneAtom);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isMobileRef = useRef(
-    typeof window !== 'undefined' && window.innerWidth < 768
-  );
+  const tier = useDeviceTier();
 
   const activeChapterRef = useRef(activeChapter);
   const subSceneRef = useRef(subScene);
+
+  useEffect(() => {
+    activeChapterRef.current = activeChapter;
+  }, [activeChapter]);
 
   useEffect(() => {
     activeChapterRef.current = activeChapter;
@@ -27,6 +25,8 @@ function ParticleCanvasComponent() {
   }, [subScene]);
 
   useEffect(() => {
+    if (tier === 'low') return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -46,15 +46,10 @@ function ParticleCanvasComponent() {
 
     const currentAccentColor = { r: 232, g: 232, b: 232, a: 0.12 };
 
-    const getParticleCount = () => {
-      const base = isMobileRef.current
-        ? Math.floor(DESKTOP_NODE_COUNT * MOBILE_NODE_RATIO)
-        : DESKTOP_NODE_COUNT;
-      return base;
-    };
-
-    const getConnectDistSq = () =>
-      isMobileRef.current ? MOBILE_CONNECT_SQ : DESKTOP_CONNECT_SQ;
+    const NODE_COUNT = tier === 'desktop' ? 280 : 120;
+    const CONNECTION_DISTANCE = tier === 'desktop' ? 140 : 90;
+    const CONNECT_DIST_SQ = CONNECTION_DISTANCE * CONNECTION_DISTANCE;
+    const FRAME_SKIP = tier === 'high' ? 2 : 1;
 
     const initParticles = () => {
       const width = window.innerWidth;
@@ -62,7 +57,7 @@ function ParticleCanvasComponent() {
       canvas.width = width;
       canvas.height = height;
 
-      const count = getParticleCount();
+      const count = NODE_COUNT;
       particles = [];
 
       const cols = Math.ceil(Math.sqrt((count * width) / height));
@@ -122,7 +117,6 @@ function ParticleCanvasComponent() {
 
     let resizeTimeout: ReturnType<typeof setTimeout>;
     const handleResize = () => {
-      isMobileRef.current = window.innerWidth < 768;
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         const oldWidth = canvas.width;
@@ -138,8 +132,7 @@ function ParticleCanvasComponent() {
           p.y = (p.y / oldHeight) * newHeight;
         });
 
-        const count = getParticleCount();
-        if (particles.length !== count) {
+        if (particles.length !== NODE_COUNT) {
           initParticles();
         }
       }, 200);
@@ -148,179 +141,173 @@ function ParticleCanvasComponent() {
     window.addEventListener('resize', handleResize);
 
     const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
       frameCounter++;
-      const skipPhysics =
-        isMobileRef.current && frameCounter % 2 !== 0;
+      if (frameCounter % FRAME_SKIP !== 0) return;
 
       const width = canvas.width;
       const height = canvas.height;
-      const connectDistSq = getConnectDistSq();
-      const connectDist = Math.sqrt(connectDistSq);
 
-      if (!skipPhysics) {
-        ctx.clearRect(0, 0, width, height);
+      ctx.clearRect(0, 0, width, height);
 
-        const targetColor = { r: 232, g: 232, b: 232, a: 0.12 };
-        currentAccentColor.r += (targetColor.r - currentAccentColor.r) * 0.05;
-        currentAccentColor.g += (targetColor.g - currentAccentColor.g) * 0.05;
-        currentAccentColor.b += (targetColor.b - currentAccentColor.b) * 0.05;
-        currentAccentColor.a += (targetColor.a - currentAccentColor.a) * 0.05;
+      const targetColor = { r: 232, g: 232, b: 232, a: 0.12 };
+      currentAccentColor.r += (targetColor.r - currentAccentColor.r) * 0.05;
+      currentAccentColor.g += (targetColor.g - currentAccentColor.g) * 0.05;
+      currentAccentColor.b += (targetColor.b - currentAccentColor.b) * 0.05;
+      currentAccentColor.a += (targetColor.a - currentAccentColor.a) * 0.05;
 
-        const accentStyle = `rgba(${Math.round(currentAccentColor.r)}, ${Math.round(currentAccentColor.g)}, ${Math.round(currentAccentColor.b)}, ${currentAccentColor.a})`;
+      const accentStyle = `rgba(${Math.round(currentAccentColor.r)}, ${Math.round(currentAccentColor.g)}, ${Math.round(currentAccentColor.b)}, ${currentAccentColor.a})`;
 
-        const neighbors: number[][] = Array.from({ length: particles.length }, () => []);
-        for (let i = 0; i < particles.length; i++) {
-          const p1 = particles[i];
-          for (let j = i + 1; j < particles.length; j++) {
-            const p2 = particles[j];
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const distSq = dx * dx + dy * dy;
-            if (distSq < connectDistSq) {
-              neighbors[i].push(j);
-              neighbors[j].push(i);
-            }
+      const neighbors: number[][] = Array.from({ length: particles.length }, () => []);
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const distSq = dx * dx + dy * dy;
+          if (distSq < CONNECT_DIST_SQ) {
+            neighbors[i].push(j);
+            neighbors[j].push(i);
           }
         }
+      }
 
-        const visited = new Set<number>();
-        const particleToClusterSize: number[] = new Array(particles.length).fill(1);
-        const particleToClusterId: number[] = new Array(particles.length).fill(-1);
+      const visited = new Set<number>();
+      const particleToClusterSize: number[] = new Array(particles.length).fill(1);
+      const particleToClusterId: number[] = new Array(particles.length).fill(-1);
 
-        let clusterIdCounter = 0;
-        for (let i = 0; i < particles.length; i++) {
-          if (!visited.has(i)) {
-            const clusterIndices: number[] = [];
-            const queue = [i];
-            visited.add(i);
+      let clusterIdCounter = 0;
+      for (let i = 0; i < particles.length; i++) {
+        if (!visited.has(i)) {
+          const clusterIndices: number[] = [];
+          const queue = [i];
+          visited.add(i);
 
-            while (queue.length > 0) {
-              const curr = queue.shift()!;
-              clusterIndices.push(curr);
-              for (const neighbor of neighbors[curr]) {
-                if (!visited.has(neighbor)) {
-                  visited.add(neighbor);
-                  queue.push(neighbor);
-                }
+          while (queue.length > 0) {
+            const curr = queue.shift()!;
+            clusterIndices.push(curr);
+            for (const neighbor of neighbors[curr]) {
+              if (!visited.has(neighbor)) {
+                visited.add(neighbor);
+                queue.push(neighbor);
               }
             }
-
-            const clusterSize = clusterIndices.length;
-            clusterIndices.forEach((idx) => {
-              particleToClusterSize[idx] = clusterSize;
-              particleToClusterId[idx] = clusterIdCounter;
-            });
-            clusterIdCounter++;
           }
+
+          const clusterSize = clusterIndices.length;
+          clusterIndices.forEach((idx) => {
+            particleToClusterSize[idx] = clusterSize;
+            particleToClusterId[idx] = clusterIdCounter;
+          });
+          clusterIdCounter++;
         }
+      }
 
-        for (let i = 0; i < particles.length; i++) {
-          const p1 = particles[i];
-          for (let j = i + 1; j < particles.length; j++) {
-            const p2 = particles[j];
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const distSq = dx * dx + dy * dy;
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const distSq = dx * dx + dy * dy;
 
-            if (distSq < connectDistSq) {
-              const dist = Math.max(Math.sqrt(distSq), 0.1);
+          if (distSq < CONNECT_DIST_SQ) {
+            const dist = Math.max(Math.sqrt(distSq), 0.1);
 
-              if (dist < 75) {
-                const force = (1 - dist / 75) * 0.025;
+            if (dist < 75) {
+              const force = (1 - dist / 75) * 0.025;
+              const rx = dx * force;
+              const ry = dy * force;
+              p1.vx -= rx;
+              p1.vy -= ry;
+              p2.vx += rx;
+              p2.vy += ry;
+            } else if (particleToClusterId[i] === particleToClusterId[j]) {
+              const force = (1 - dist / CONNECTION_DISTANCE) * 0.0006;
+              const ax = dx * force;
+              const ay = dy * force;
+              p1.vx += ax;
+              p1.vy += ay;
+              p2.vx -= ax;
+              p2.vy -= ay;
+            } else {
+              const sizeI = particleToClusterSize[i];
+              const sizeJ = particleToClusterSize[j];
+
+              if (sizeI + sizeJ > 3) {
+                const force = (1 - dist / CONNECTION_DISTANCE) * 0.012;
                 const rx = dx * force;
                 const ry = dy * force;
                 p1.vx -= rx;
                 p1.vy -= ry;
                 p2.vx += rx;
                 p2.vy += ry;
-              } else if (particleToClusterId[i] === particleToClusterId[j]) {
-                const force = (1 - dist / connectDist) * 0.0006;
-                const ax = dx * force;
-                const ay = dy * force;
-                p1.vx += ax;
-                p1.vy += ay;
-                p2.vx -= ax;
-                p2.vy -= ay;
-              } else {
-                const sizeI = particleToClusterSize[i];
-                const sizeJ = particleToClusterSize[j];
-
-                if (sizeI + sizeJ > 3) {
-                  const force = (1 - dist / connectDist) * 0.012;
-                  const rx = dx * force;
-                  const ry = dy * force;
-                  p1.vx -= rx;
-                  p1.vy -= ry;
-                  p2.vx += rx;
-                  p2.vy += ry;
-                }
               }
             }
           }
         }
-
-        particles.forEach((p) => {
-          p.vx = Math.max(Math.min(p.vx, 0.12), -0.12);
-          p.vy = Math.max(Math.min(p.vy, 0.08), -0.08);
-          p.vx *= 0.99;
-          p.vy *= 0.99;
-          p.vx += (Math.random() - 0.5) * 0.0015;
-          p.vy += (Math.random() - 0.5) * 0.0012;
-          p.x += p.vx;
-          p.y += p.vy;
-          p.y -= scrollVelocity * 0.4;
-          p.x += scrollVelocity * p.parallaxFactor;
-
-          if (p.x < 0) p.x = width;
-          if (p.x > width) p.x = 0;
-          if (p.y < 0) p.y = height;
-          if (p.y > height) p.y = 0;
-
-          let fillStyle = '';
-          if (p.colorType === 'white') {
-            fillStyle = 'rgba(255, 255, 255, 0.4)';
-          } else if (p.colorType === 'dim') {
-            fillStyle = 'rgba(255, 255, 255, 0.1)';
-          } else {
-            fillStyle = accentStyle;
-          }
-
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-          ctx.fillStyle = fillStyle;
-          ctx.fill();
-        });
-
-        for (let i = 0; i < particles.length; i++) {
-          const p1 = particles[i];
-          for (let j = i + 1; j < particles.length; j++) {
-            const p2 = particles[j];
-            const dx = p1.x - p2.x;
-            const dy = p1.y - p2.y;
-            const distSq = dx * dx + dy * dy;
-
-            if (distSq < connectDistSq) {
-              if (
-                particleToClusterId[i] === particleToClusterId[j] &&
-                particleToClusterSize[i] <= 3
-              ) {
-                const dist = Math.sqrt(distSq);
-                const opacity = (1 - dist / connectDist) * 0.38;
-                ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.strokeStyle = `rgba(232, 232, 232, ${opacity})`;
-                ctx.lineWidth = 0.8;
-                ctx.stroke();
-              }
-            }
-          }
-        }
-
-        scrollVelocity *= 0.88;
       }
 
-      animationFrameId = requestAnimationFrame(animate);
+      particles.forEach((p) => {
+        p.vx = Math.max(Math.min(p.vx, 0.12), -0.12);
+        p.vy = Math.max(Math.min(p.vy, 0.08), -0.08);
+        p.vx *= 0.99;
+        p.vy *= 0.99;
+        p.vx += (Math.random() - 0.5) * 0.0015;
+        p.vy += (Math.random() - 0.5) * 0.0012;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.y -= scrollVelocity * 0.4;
+        p.x += scrollVelocity * p.parallaxFactor;
+
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+
+        let fillStyle = '';
+        if (p.colorType === 'white') {
+          fillStyle = 'rgba(255, 255, 255, 0.4)';
+        } else if (p.colorType === 'dim') {
+          fillStyle = 'rgba(255, 255, 255, 0.1)';
+        } else {
+          fillStyle = accentStyle;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+      });
+
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const distSq = dx * dx + dy * dy;
+
+          if (distSq < CONNECT_DIST_SQ) {
+            if (
+              particleToClusterId[i] === particleToClusterId[j] &&
+              particleToClusterSize[i] <= 3
+            ) {
+              const dist = Math.sqrt(distSq);
+              const opacity = (1 - dist / CONNECTION_DISTANCE) * 0.38;
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.strokeStyle = `rgba(232, 232, 232, ${opacity})`;
+              ctx.lineWidth = 0.8;
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      scrollVelocity *= 0.88;
     };
 
     animate();
@@ -331,7 +318,20 @@ function ParticleCanvasComponent() {
       cancelAnimationFrame(animationFrameId);
       clearTimeout(resizeTimeout);
     };
-  }, []);
+  }, [tier]);
+
+  if (tier === 'low') {
+    return (
+      <div className="fixed inset-0 -z-10 bg-[#080808]">
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+          opacity: 0.35,
+        }} />
+      </div>
+    );
+  }
 
   return (
     <canvas

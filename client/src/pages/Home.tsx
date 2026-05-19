@@ -8,7 +8,7 @@ import { useScrollDepthTransition } from '@/hooks/useScrollDepthTransition';
 import { useScrollTrigger } from '@/hooks/useScrollTrigger';
 import { setupChapterFlashes } from '@/lib/cinemaEffects';
 import { gsapDur } from '@/lib/gsapDuration';
-import { useMobileDetect } from '@/hooks/useMobileDetect';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -39,7 +39,9 @@ export default function Home() {
   const [loadReneChat, setLoadReneChat] = useState(false);
   const [showSwipeHint, setShowSwipeHint] = useState(true);
   const [isReneOpen] = useAtom(reneChatOpenAtom);
-  const isMobile = useMobileDetect();
+  const tier = useDeviceTier();
+  const isMobile = tier !== 'desktop';
+  const [showLowTierDiagram, setShowLowTierDiagram] = useState(false);
   
   // Mobile-only carousel state & handlers
   const [diagramCollapsed, setDiagramCollapsed] = useState(false);
@@ -233,6 +235,7 @@ export default function Home() {
   // Chapter 1 (Origin) Premium Staggered Entrance + Parallax
   useEffect(() => {
     if (!originRef.current) return;
+    if (tier === 'low') return;
 
     const d = (n: number) => gsapDur(n, isMobile);
 
@@ -305,12 +308,14 @@ export default function Home() {
       ctx.revert();
       ScrollTrigger.getAll().forEach((t) => t.kill());
     };
-  }, [isMobile]);
+  }, [isMobile, tier]);
 
   // Removed aggressive GSAP-based snap per product request.
 
   // Hero & Global Section Parallax Animations
   useEffect(() => {
+    if (tier !== 'desktop') return;
+
     const ctx = gsap.context(() => {
       // 1. Purple nebula moves slower and fades out (dist-parallax)
       gsap.to('.nebula-purple', {
@@ -394,11 +399,12 @@ export default function Home() {
       ctx.revert();
       ScrollTrigger.getAll().forEach((t) => t.kill());
     };
-  }, []);
+  }, [tier]);
 
   // Chapter 2 (Projects) Horizontal Scroll Snapping Carousel Animation
   useEffect(() => {
     if (!buildRef.current || !horizontalRef.current) return;
+    if (tier !== 'desktop') return;
 
     const ctx = gsap.context(() => {
       const scrollWidth = horizontalRef.current!.scrollWidth;
@@ -438,11 +444,12 @@ export default function Home() {
       ctx.revert();
       ScrollTrigger.getAll().forEach((t) => t.kill());
     };
-  }, []);
+  }, [tier]);
 
   // Chapter 3 (Skills/Arsenal) Premium Staggered Pop-in
   useEffect(() => {
     if (!arsenalRef.current) return;
+    if (tier === 'low') return;
 
     const ctx = gsap.context(() => {
       // Section label fade-in
@@ -483,10 +490,14 @@ export default function Home() {
       ctx.revert();
       ScrollTrigger.getAll().forEach((t) => t.kill());
     };
-  }, []);
+  }, [tier]);
 
   // Chapter 4 (Achievements) Premium Entrance + Count-Up
   useEffect(() => {
+    if (tier === 'low') {
+      setTeamsCount(150);
+      return;
+    }
     if (!winRef.current) return;
 
     const d = (n: number) => gsapDur(n, isMobile);
@@ -577,7 +588,7 @@ export default function Home() {
       ctx.revert();
       ScrollTrigger.getAll().forEach((t) => t.kill());
     };
-  }, [isMobile]);
+  }, [isMobile, tier]);
 
   const scrollToChapter = (id: string) => {
     const el = document.getElementById(id);
@@ -943,8 +954,21 @@ export default function Home() {
                   </button>
                   
                   {!diagramCollapsed && (
-                    <>
-                      <div className="absolute inset-0 project-right-panel project-right-panel-atlas -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(232, 232, 232, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
+                    tier === 'low' && !showLowTierDiagram ? (
+                      <div className="w-full h-[180px] flex flex-col items-center justify-center gap-3">
+                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+                          Interactive Architecture
+                        </span>
+                        <button
+                          onClick={() => setShowLowTierDiagram(true)}
+                          className="px-4 py-1.5 rounded-full border border-accent/30 text-accent text-xs font-mono hover:bg-accent hover:text-black transition-all duration-300 pointer-events-auto"
+                        >
+                          Tap to load diagram
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 project-right-panel project-right-panel-atlas -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(232, 232, 232, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
                       <svg viewBox="0 0 600 450" className="w-full h-full select-none max-w-md mx-auto" style={{ overflow: 'visible' }}>
                         <defs>
                           <filter id="glow-platinum-mobile" x="-20%" y="-20%" width="140%" height="140%">
@@ -1021,7 +1045,8 @@ export default function Home() {
                           </div>
                         )}
                       </div>
-                    </>
+                      </>
+                    )
                   )}
                 </div>
               </div>
@@ -1089,8 +1114,21 @@ export default function Home() {
                   </button>
                   
                   {!diagramCollapsed && (
-                    <>
-                      <div className="absolute inset-0 project-right-panel project-right-panel-nexora -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(180, 100, 255, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
+                    tier === 'low' && !showLowTierDiagram ? (
+                      <div className="w-full h-[180px] flex flex-col items-center justify-center gap-3">
+                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+                          Interactive Architecture
+                        </span>
+                        <button
+                          onClick={() => setShowLowTierDiagram(true)}
+                          className="px-4 py-1.5 rounded-full border border-[#b464ff]/30 text-[#b464ff] text-xs font-mono hover:bg-[#b464ff] hover:text-black transition-all duration-300 pointer-events-auto"
+                        >
+                          Tap to load diagram
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 project-right-panel project-right-panel-nexora -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(180, 100, 255, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
                       <svg viewBox="0 0 600 450" className="w-full h-full select-none max-w-md mx-auto" style={{ overflow: 'visible' }}>
                         <defs>
                           <filter id="glow-purple-mobile" x="-30%" y="-30%" width="160%" height="160%">
@@ -1176,7 +1214,8 @@ export default function Home() {
                           </div>
                         )}
                       </div>
-                    </>
+                      </>
+                    )
                   )}
                 </div>
               </div>
@@ -1244,8 +1283,21 @@ export default function Home() {
                   </button>
                   
                   {!diagramCollapsed && (
-                    <>
-                      <div className="absolute inset-0 project-right-panel project-right-panel-stratos -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
+                    tier === 'low' && !showLowTierDiagram ? (
+                      <div className="w-full h-[180px] flex flex-col items-center justify-center gap-3">
+                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+                          Interactive Architecture
+                        </span>
+                        <button
+                          onClick={() => setShowLowTierDiagram(true)}
+                          className="px-4 py-1.5 rounded-full border border-amber-500/30 text-amber-500 text-xs font-mono hover:bg-amber-500 hover:text-black transition-all duration-300 pointer-events-auto"
+                        >
+                          Tap to load diagram
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 project-right-panel project-right-panel-stratos -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
                       <svg viewBox="0 0 600 450" className="w-full h-full select-none max-w-md mx-auto" style={{ overflow: 'visible' }}>
                         <defs>
                           <filter id="glow-amber-mobile" x="-20%" y="-20%" width="140%" height="140%">
@@ -1312,7 +1364,8 @@ export default function Home() {
                           </div>
                         )}
                       </div>
-                    </>
+                      </>
+                    )
                   )}
                 </div>
               </div>

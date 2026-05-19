@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect, useState, memo } from 'react';
-import { useMobileDetect } from '@/hooks/useMobileDetect';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 import { useFrame } from '@react-three/fiber';
 import { MeshTransmissionMaterial } from '@react-three/drei';
 import * as THREE from 'three';
@@ -104,7 +104,7 @@ export function createBrilliantCutDiamond() {
 }
 
 function DiamondComponent() {
-  const isMobile = useMobileDetect();
+  const tier = useDeviceTier();
   const meshRef = useRef<THREE.Mesh>(null);
   const [rotation] = useAtom(diamondRotationAtom);
   const [mouseRotation, setMouseRotation] = useState({ x: 0, y: 0 });
@@ -145,13 +145,16 @@ function DiamondComponent() {
   // but guard here in case the hook wasn't invoked). We rely on InputManager to provide
   // a smoothed pointer position so UI hover can't interrupt the 3D tracking.
   useEffect(() => {
-    InputManager.start();
-  }, []);
+    if (tier !== 'low') {
+      InputManager.start();
+    }
+  }, [tier]);
 
   // Animate diamond with smooth rotation and floating motion
   useFrame((state) => {
     if (!meshRef.current || !isInitialized) return;
-    if (isMobile && state.gl.info.render.frame % 2 !== 0) return;
+    if (tier === 'low') return;
+    if (tier === 'high' && state.gl.info.render.frame % 2 !== 0) return;
     
     // Continuous gentle rotation for visibility - very slow, elegant rotation
     meshRef.current.rotation.x += 0.00008;
@@ -163,8 +166,10 @@ function DiamondComponent() {
     const centerY = nm.y; // 0..1
     const targetX = (centerY - 0.5) * Math.PI * 0.25;
     const targetY = (centerX - 0.5) * Math.PI * 0.25;
-    meshRef.current.rotation.x += (targetX - meshRef.current.rotation.x) * 0.015;
-    meshRef.current.rotation.y += (targetY - meshRef.current.rotation.y) * 0.015;
+    
+    const lerpFactor = tier === 'desktop' ? 0.015 : 0.01;
+    meshRef.current.rotation.x += (targetX - meshRef.current.rotation.x) * lerpFactor;
+    meshRef.current.rotation.y += (targetY - meshRef.current.rotation.y) * lerpFactor;
     
     // Scroll-based rotation - cinematic choreography
     meshRef.current.rotation.x += rotation.x * 0.003;
@@ -195,15 +200,15 @@ function DiamondComponent() {
         clearcoatRoughness={0.03}
         
         // Spectral effects for realistic diamond
-        chromaticAberration={0}
-        anisotropy={0.12}
+        chromaticAberration={tier === 'desktop' ? 0.06 : 0}
+        anisotropy={tier === 'desktop' ? 0.1 : 0}
         
         distortion={0.01}
         distortionScale={0.2}
         temporalDistortion={0.0}
         
-        samples={isMobile ? 2 : 8}
-        resolution={256}
+        samples={tier === 'desktop' ? 8 : tier === 'high' ? 4 : 2}
+        resolution={tier === 'desktop' ? 512 : 256}
         backside={true}
         toneMapped={true}
         side={THREE.DoubleSide}

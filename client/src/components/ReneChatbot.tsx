@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Send, X, Sparkles, SendHorizontal } from 'lucide-react';
-import { useMobileDetect } from '@/hooks/useMobileDetect';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 
 interface Message {
   role: 'user' | 'rene';
@@ -14,7 +14,8 @@ import { reneChatOpenAtom, activeChapterAtom } from '@/lib/atoms';
 import { sendReneMessage } from '@/lib/reneApi';
 
 export function ReneLauncher({ onClick, className, style, showIdlePrompt }: { onClick: () => void; className?: string; style?: React.CSSProperties; showIdlePrompt?: boolean }) {
-  const isMobile = useMobileDetect();
+  const tier = useDeviceTier();
+  const isMobile = tier !== 'desktop';
 
   return (
     <motion.button

@@ -3,29 +3,11 @@ import { motion, Variants } from 'framer-motion';
 import { useAtom } from 'jotai';
 import { splineLoadedAtom } from '@/lib/atoms';
 import useDOMParallax from '@/hooks/useDOMParallax';
+import { useDeviceTier, DeviceTier } from '@/hooks/useDeviceTier';
 
 /* ── Framer Motion Variants ──────────────────────────── */
 const easing = [0.25, 0.1, 0.25, 1];
 const premiumEase = [0.34, 1.56, 0.64, 1];
-
-const fadeInUp: Variants = {
-  hidden: { y: 20, opacity: 0, filter: 'blur(6px)' },
-  visible: (custom: number = 0) => ({
-    y: 0,
-    opacity: 1,
-    filter: 'blur(0px)',
-    transition: { duration: 0.7, ease: easing, delay: custom },
-  }),
-};
-
-const scaleIn: Variants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: (custom: number = 0) => ({
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.6, ease: premiumEase, delay: custom },
-  }),
-};
 
 interface LetterPhysics {
   x: number;
@@ -47,6 +29,7 @@ export function HeroContent() {
   const [splineLoaded] = useAtom(splineLoadedAtom);
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const tier = useDeviceTier();
   
   // State for original name typing sequence
   const fullName = 'GANESH BAMALWA';
@@ -69,8 +52,52 @@ export function HeroContent() {
   // Single-source physics ref to track all letters at 60fps
   const physicsData = useRef<LetterPhysics[]>([]);
 
+  // Dynamic animation configurations
+  const getFadeInUp = (deviceTier: DeviceTier): Variants => {
+    if (deviceTier === 'desktop') return {
+      hidden: { y: 20, opacity: 0, filter: 'blur(6px)' },
+      visible: (custom: number = 0) => ({
+        y: 0,
+        opacity: 1,
+        filter: 'blur(0px)',
+        transition: { duration: 0.7, ease: easing, delay: custom },
+      }),
+    };
+    return {
+      hidden: { y: 10, opacity: 0 },
+      visible: (custom: number = 0) => ({
+        y: 0,
+        opacity: 1,
+        transition: { duration: 0.35, ease: 'easeOut', delay: custom },
+      }),
+    };
+  };
+
+  const getScaleIn = (deviceTier: DeviceTier): Variants => {
+    if (deviceTier === 'desktop') return {
+      hidden: { opacity: 0, scale: 0.95 },
+      visible: (custom: number = 0) => ({
+        opacity: 1,
+        scale: 1,
+        transition: { duration: 0.6, ease: premiumEase, delay: custom },
+      }),
+    };
+    return {
+      hidden: { opacity: 0, scale: 0.98 },
+      visible: (custom: number = 0) => ({
+        opacity: 1,
+        scale: 1,
+        transition: { duration: 0.35, ease: 'easeOut', delay: custom },
+      }),
+    };
+  };
+
+  const currentFadeInUp = getFadeInUp(tier);
+  const currentScaleIn = getScaleIn(tier);
+
   // Capture coordinate mappings of all letters relative to the nodeRef absolute wrapper
   const initializePhysics = useCallback(() => {
+    if (tier === 'low') return;
     const letters = document.querySelectorAll('.hero-headline .letter-char');
     const containerRect = nodeRef.current?.getBoundingClientRect();
     if (!containerRect || letters.length === 0) return;
@@ -99,10 +126,11 @@ export function HeroContent() {
     });
 
     physicsData.current = data;
-  }, []);
+  }, [tier]);
 
   // Handle window sizing adjustments to compute responsive letter anchors
   const handleResize = useCallback(() => {
+    if (tier === 'low') return;
     if (!isFloating && !isReturning) {
       initializePhysics();
     } else {
@@ -117,10 +145,10 @@ export function HeroContent() {
         physicsData.current[index].targetY = rect.top - containerRect.top;
       });
     }
-  }, [isFloating, isReturning, initializePhysics]);
+  }, [isFloating, isReturning, initializePhysics, tier]);
 
   useEffect(() => {
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
 
@@ -149,19 +177,14 @@ export function HeroContent() {
 
   // Let layout settle completely before capturing initial coordinates
   useEffect(() => {
+    if (tier === 'low') return;
     if (nameTypingDone) {
       const t = setTimeout(() => {
         initializePhysics();
-        // PART 5: Log initial origin positions on load
-        if (physicsData.current && physicsData.current.length > 0) {
-          physicsData.current.forEach((item, index) => {
-            console.log(`Origin Letter ${nonSpaceLetters[index]}:`, item.targetX, item.targetY);
-          });
-        }
       }, 300);
       return () => clearTimeout(t);
     }
-  }, [nameTypingDone, initializePhysics]);
+  }, [nameTypingDone, initializePhysics, tier]);
 
   // Stage 2 → 3: Tagline reveal (900ms)
   useEffect(() => {
@@ -186,6 +209,7 @@ export function HeroContent() {
 
   // Forward viewport mouse events directly to Spline canvas for interactive head-tracking
   useEffect(() => {
+    if (tier === 'low') return;
     const handleMouseMove = (e: MouseEvent) => {
       const canvas = document.querySelector('.robot-container canvas');
       if (!canvas) return;
@@ -204,7 +228,7 @@ export function HeroContent() {
     };
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  }, [tier]);
 
   const scrollToChapter = useCallback((id: string) => {
     const el = document.getElementById(id);
@@ -213,6 +237,7 @@ export function HeroContent() {
 
   /* ── physics trigger: zero-gravity explosion ────────────────── */
   const launchInitials = () => {
+    if (tier === 'low') return;
     if (isFloating || isReturning) return;
 
     // Refresh dynamic measurements
@@ -222,7 +247,6 @@ export function HeroContent() {
     if (data.length === 0) return;
 
     data.forEach((item) => {
-      // PART 2: Enforce start position is EXACTLY the origin coordinates (targetX, targetY)
       item.x = item.targetX;
       item.y = item.targetY;
 
@@ -243,6 +267,7 @@ export function HeroContent() {
 
   /* ── Interactive bat/nudge click boost ────────────────────────── */
   const handleLetterClick = (e: React.MouseEvent, index: number) => {
+    if (tier === 'low') return;
     if (!isFloating) {
       launchInitials();
       return;
@@ -272,10 +297,7 @@ export function HeroContent() {
 
   /* ── Drag throw and momentum calculation ───────────────────────── */
   const startDrag = (index: number, clientX: number, clientY: number) => {
-    if (!isFloating) {
-      launchInitials();
-      return;
-    }
+    if (tier !== 'desktop') return; // disabled on all mobile tiers (low and high)
     if (isReturning) return;
 
     const data = physicsData.current[index];
@@ -330,12 +352,14 @@ export function HeroContent() {
 
   /* ── Return locking animation ─────────────────────────────────── */
   const triggerReturn = () => {
+    if (tier === 'low') return;
     if (!isFloating || isReturning) return;
     setIsReturning(true);
   };
 
   /* ── requestAnimationFrame 60FPS physics loop ───────────────── */
   useEffect(() => {
+    if (tier === 'low') return;
     if (!isFloating) {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -363,7 +387,6 @@ export function HeroContent() {
         if (!el) return;
 
         if (isReturning) {
-          // PART 4: Direct Lerp interpolation return path (currentPos += (originPos - currentPos) * 0.08)
           item.x += (item.targetX - item.x) * 0.08;
           item.y += (item.targetY - item.y) * 0.08;
           item.rotation += (0 - item.rotation) * 0.08;
@@ -383,7 +406,6 @@ export function HeroContent() {
           item.vx *= 0.985;
           item.vy *= 0.985;
 
-          // PART 3: Viewport edge collision check & boundary clamp
           if (item.x < margin) {
             item.x = margin;
             item.vx = -item.vx * 0.8; // reverse and bounce back
@@ -399,9 +421,6 @@ export function HeroContent() {
             item.y = screenH - margin - item.height;
             item.vy = -item.vy * 0.8;
           }
-
-          // PART 5: Frame debug coordinate logging
-          console.log(`Current Letter ${nonSpaceLetters[index]}:`, item.x, item.y);
         }
 
         // Apply dynamic translations directly to bypass React re-renders for fluid 60fps
@@ -437,7 +456,7 @@ export function HeroContent() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isFloating, isReturning]);
+  }, [isFloating, isReturning, tier]);
 
   // Respect user preference for reduced motion accessibility
   useEffect(() => {
@@ -447,6 +466,83 @@ export function HeroContent() {
       setIsReturning(false);
     }
   }, []);
+
+  if (tier === 'low') {
+    return (
+      <div
+        ref={nodeRef}
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        style={{ zIndex: 3 }}
+      >
+        {/* Chapter Indicator label */}
+        <div
+          className="absolute top-[8%] md:top-[10%] left-1/2 -translate-x-1/2 text-[10px] md:text-xs uppercase tracking-[0.4em] text-accent font-semibold text-center opacity-85 pointer-events-none select-none whitespace-nowrap z-50 hero-chapter-label mobile-fade-in"
+          style={{ textShadow: '0 2px 12px rgba(0,0,0,0.85)' }}
+        >
+          CHAPTER 00 // THE FOCUS
+        </div>
+
+        <div
+          ref={contentRef}
+          className="max-w-5xl w-full text-center px-8 md:px-16 py-16 md:py-24 hero-parallax rounded-2xl flex flex-col items-center justify-center"
+          style={{ background: 'transparent', zIndex: 2, position: 'relative' }}
+        >
+          <div
+            className="flex flex-col items-center justify-center w-full"
+            style={{ zIndex: 3, position: 'relative' }}
+          >
+            {/* ── Name Container ──────────────────────── */}
+            <div
+              id="hero-name-area"
+              className="relative w-full h-[140px] flex items-center justify-center pointer-events-none mobile-fade-in"
+            >
+              <h1
+                className="hero-headline uppercase tracking-[0.16em] font-light text-5xl md:text-7xl lg:text-8xl text-[#F5F5F5] select-none whitespace-nowrap pl-[0.16em]"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  textShadow: '2px 4px 32px rgba(0,0,0,0.8)',
+                }}
+                aria-label="Ganesh Bamalwa"
+              >
+                GANESH BAMALWA
+              </h1>
+            </div>
+
+            {/* ── Tagline ──────────────────── */}
+            <div className="mt-8 flex justify-center pointer-events-none select-none mobile-fade-in">
+              <div
+                className="px-6 py-2.5 rounded-full border border-white/[0.05] flex items-center justify-center pointer-events-none select-none hero-tagline"
+                style={{ background: 'rgba(5,5,5,0.4)', backdropFilter: 'blur(12px)' }}
+              >
+                <span
+                  className="text-base md:text-xl font-light text-[#F5F5F5] tracking-[0.08em] pointer-events-none select-none"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  I build systems that think.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="absolute bottom-[13%] md:bottom-[15%] left-1/2 -translate-x-1/2 flex items-center justify-center gap-6 z-40 pointer-events-auto mobile-fade-in">
+          <button
+            onClick={() => scrollToChapter('chapter-projects')}
+            className="glass-btn cursor-pointer pointer-events-auto"
+          >
+            The Build
+          </button>
+          <button
+            onClick={() => scrollToChapter('chapter-contact')}
+            className="glass-btn outline-btn cursor-pointer pointer-events-auto"
+          >
+            Get in touch
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -458,7 +554,7 @@ export function HeroContent() {
       <motion.div
         initial="hidden"
         animate={stage >= 3 ? 'visible' : 'hidden'}
-        variants={fadeInUp}
+        variants={currentFadeInUp}
         custom={0}
         viewport={{ once: true, margin: '-50px' }}
         className="absolute top-[8%] md:top-[10%] left-1/2 -translate-x-1/2 text-[10px] md:text-xs uppercase tracking-[0.4em] text-accent font-semibold text-center opacity-85 pointer-events-none select-none whitespace-nowrap z-50 hero-chapter-label"
@@ -552,12 +648,12 @@ export function HeroContent() {
             </div>
           </div>
 
-          {/* ── Tagline — stage 2 ──────────────────── */}
+          {/* ── Tagline ──────────────────── */}
           <motion.div
             className="mt-8 flex justify-center pointer-events-none select-none"
             initial="hidden"
             animate={stage >= 2 ? 'visible' : 'hidden'}
-            variants={fadeInUp}
+            variants={currentFadeInUp}
             custom={0}
             viewport={{ once: true, margin: '-50px' }}
           >
@@ -587,8 +683,8 @@ export function HeroContent() {
             return (
               <span
                 key={index}
-                onMouseDown={(e) => startDrag(index, e.clientX, e.clientY)}
-                onTouchStart={(e) => startDrag(index, e.touches[0].clientX, e.touches[0].clientY)}
+                onMouseDown={tier === 'desktop' ? (e) => startDrag(index, e.clientX, e.clientY) : undefined}
+                onTouchStart={tier === 'desktop' ? (e) => startDrag(index, e.touches[0].clientX, e.touches[0].clientY) : undefined}
                 onClick={(e) => handleLetterClick(e, index)}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
@@ -600,10 +696,9 @@ export function HeroContent() {
                   position: 'absolute',
                   left: 0,
                   top: 0,
-                  // Enforce current coordinates instantly in inline styles to prevent screen flashes/corners snapping
                   transform: item 
-                    ? `translate3d(${item.x}px, ${item.y}px, 0) scale(${item.scale}) rotate(${item.rotation}deg)` 
-                    : 'none',
+                     ? `translate3d(${item.x}px, ${item.y}px, 0) scale(${item.scale}) rotate(${item.rotation}deg)` 
+                     : 'none',
                   filter: isHovered 
                     ? 'drop-shadow(0 0 25px rgba(255,255,255,0.4)) drop-shadow(0 4px 12px rgba(0,0,0,0.5))' 
                     : 'drop-shadow(0 4px 16px rgba(0,0,0,0.65))',
@@ -640,7 +735,7 @@ export function HeroContent() {
           className="absolute bottom-[13%] md:bottom-[15%] left-1/2 -translate-x-1/2 flex items-center justify-center gap-6 z-40 pointer-events-auto"
           initial="hidden"
           animate={stage >= 3 ? 'visible' : 'hidden'}
-          variants={scaleIn}
+          variants={currentScaleIn}
           custom={0.1}
           viewport={{ once: true, margin: '-50px' }}
         >

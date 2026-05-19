@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { useMobileDetect } from '@/hooks/useMobileDetect';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 
 const PHASE1 = '"The next chapter ';
 const PHASE2 = `isn't written yet."`;
@@ -12,7 +12,8 @@ const ITALIC_END = ITALIC_START + ITALIC_TEXT.length;
 export default function TypewriterQuote() {
   const containerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(containerRef, { once: true, margin: '-20%' });
-  const isMobile = useMobileDetect();
+  const tier = useDeviceTier();
+  const isMobile = tier !== 'desktop';
 
   const [displayedLength, setDisplayedLength] = useState(0);
   const [showCursor, setShowCursor] = useState(false);

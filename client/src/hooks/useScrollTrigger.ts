@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 import gsap from 'gsap';
 
 /**
@@ -14,8 +15,11 @@ import gsap from 'gsap';
 export function useScrollTrigger() {
   const isAnimating = useRef(false);
   const touchStartY = useRef(0);
+  const tier = useDeviceTier();
 
   useEffect(() => {
+    if (tier === 'low') return;
+
     const handleWheel = (e: WheelEvent) => {
       const scrollY = window.scrollY;
       const threshold = 50; // threshold area near sections

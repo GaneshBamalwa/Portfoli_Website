@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAtom } from 'jotai';
 import { scrollProgressAtom, diamondRotationAtom } from '@/lib/atoms';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 
 /**
  * useScrollAnimation Hook
@@ -14,8 +15,11 @@ export function useScrollAnimation() {
   const [, setDiamondRotation] = useAtom(diamondRotationAtom);
   const scrollVelocityRef = useRef(0);
   const lastScrollRef = useRef(0);
+  const tier = useDeviceTier();
 
   useEffect(() => {
+    if (tier === 'low') return;
+
     let animationFrameId: number;
     let ticking = false;
 

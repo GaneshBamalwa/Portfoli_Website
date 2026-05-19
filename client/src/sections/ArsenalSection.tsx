@@ -1,5 +1,5 @@
 import { forwardRef, memo, useState } from 'react';
-import { useDeviceProfile } from '@/hooks/useDeviceProfile';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
 
 const SKILL_CATEGORIES = [
   {
@@ -88,9 +88,9 @@ function SkillCard({
   skills: readonly string[];
 }) {
   const [hovered, setHovered] = useState(false);
-  const profile = useDeviceProfile();
+  const tier = useDeviceTier();
 
-  const isMobile = profile.isMobile;
+  const canHover = tier !== 'low';
 
   return (
     <div
@@ -107,12 +107,8 @@ function SkillCard({
           'border-color 0.7s ease, box-shadow 0.7s ease, background-color 0.7s ease',
         backgroundColor: hovered ? 'rgba(212,175,55,0.03)' : 'transparent',
       }}
-      onMouseEnter={() => {
-        if (!isMobile) setHovered(true);
-      }}
-      onMouseLeave={() => {
-        if (!isMobile) setHovered(false);
-      }}
+      onMouseEnter={canHover ? () => setHovered(true) : undefined}
+      onMouseLeave={canHover ? () => setHovered(false) : undefined}
     >
       <div className="w-8 h-8 rounded bg-accent/5 border border-accent/25 flex items-center justify-center text-accent mb-6 font-mono text-sm">
         {num}
