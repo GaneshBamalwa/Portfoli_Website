@@ -580,7 +580,7 @@ function ReneChatbotComponent() {
                   <div className="text-[9px] uppercase tracking-[0.25em] text-white/25 mb-2 font-mono">
                     Suggested Inquiries
                   </div>
-                  <div className="flex gap-2 pointer-events-auto overflow-x-auto pb-2 rene-scrollbar w-full" style={{ scrollbarWidth: 'none' }}>
+                  <div className="flex gap-2 pointer-events-auto overflow-x-auto pb-2 pt-1 -mt-1 px-1 -mx-1 rene-scrollbar w-full" style={{ scrollbarWidth: 'none' }}>
                     {SUGGESTED_QUERIES.map((q, idx) => (
                       <button
                         key={idx}
