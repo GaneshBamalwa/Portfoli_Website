@@ -101,10 +101,41 @@ PROJECT 2: Nexora – AI-Powered Customer Support Portal
   * Built AI-driven ticket triage engines, real-time agent copilot assistance, and analytics dashboards with CSV/PDF exports.
   * Implemented strict security: JWT, bcrypt, Role-Based Access Control (RBAC), IDOR protection, and rate limiting via slowapi.
 
+PROJECT 3: Vyapaar Saarthi – The Next-Generation AI-Native Operating System for Indian MSMEs
+- Hackathon: FarAway Hackathon Zuup
+- Technologies: Python, React, FastAPI, Gemini 2.5 Pro Vision, LangGraph, Tailwind CSS
+- Description:
+  * A mission-critical, modular AI agent platform orchestrated via LangGraph.
+  * Features independently callable agents for processing multilingual voice orders via Twilio/Telegram.
+  * Analyzes complex GST documents via Gemini 2.5 Pro Vision.
+  * Mitigates supply chain risks.
+
+PROJECT 4: Sahayak AI – Enterprise Multi-Agent Financial Inclusion Assistant
+- Hackathon: HackIndia Hackathon Winner
+- Technologies: LangGraph, FastAPI, Google Gemini, Redis, React
+- Description:
+  * A production-grade multi-agent AI system for rural Indian financial inclusion.
+  * Orchestrates a LangGraph pipeline handling language detection, profile extraction, clarifying questions, web search, reasoning, and fraud safety with LLM-based filtering.
+
+PROJECT 5: Groundhog – The Memory-Graph Layer for Machine-Learning Experiments
+- Hackathon: The Hangover Hackathon (WeMakeDevs)
+- Technologies: Cognee, Python, React, MCP, W&B, Kuzu
+- Description:
+  * Turns a pile of ML runs into a memory that reasons.
+  * Prevents duplicate runs via a Pre-flight Guard.
+  * Calculates deterministic hyperparameter sensitivity.
+  * Exposes experiment history to coding agents via a Model Context Protocol (MCP) server.
+
 --------------------
 ACHIEVEMENTS
 --------------------
 - Samsung PRISM Web-Agent Hackathon Winner: Built coordinated autonomous AI agents using the Model Context Protocol (MCP) and won 1st place among 150+ highly competitive teams.
+- HackIndia AI Agents Hackathon 2026: Won 2nd runner up out of 450+ teams (Sahayak AI).
+
+--------------------
+OPEN SOURCE CONTRIBUTIONS
+--------------------
+- Coral (withcoral/coral): Contributed 30+ commits across 2 merged pull requests (PR #1058 and PR #1066), adding Chromium and Firefox source support to extend the project's cross-browser engine coverage. Improved browser compatibility across non-WebKit engines.
 
 ====================================================
 RESPONSE TEMPLATE & STYLE

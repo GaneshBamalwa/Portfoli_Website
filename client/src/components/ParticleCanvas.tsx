@@ -60,38 +60,27 @@ function ParticleCanvasComponent() {
       const count = NODE_COUNT;
       particles = [];
 
-      const cols = Math.ceil(Math.sqrt((count * width) / height));
-      const rows = Math.ceil(count / cols);
-      const cellWidth = width / cols;
-      const cellHeight = height / rows;
-
-      let pIndex = 0;
-      for (let r = 0; r < rows && pIndex < count; r++) {
-        for (let c = 0; c < cols && pIndex < count; c++) {
-          const rand = Math.random();
-          let colorType: 'white' | 'accent' | 'dim' = 'white';
-          if (rand < 0.35) {
-            colorType = 'accent';
-          } else if (rand < 0.7) {
-            colorType = 'dim';
-          }
-
-          const jitterX = (Math.random() - 0.5) * cellWidth * 0.7;
-          const jitterY = (Math.random() - 0.5) * cellHeight * 0.7;
-          const x = (c + 0.5) * cellWidth + jitterX;
-          const y = (r + 0.5) * cellHeight + jitterY;
-
-          particles.push({
-            x: Math.max(20, Math.min(x, width - 20)),
-            y: Math.max(20, Math.min(y, height - 20)),
-            radius: Math.random() * 1.2 + 0.8,
-            colorType,
-            vx: Math.random() * 0.08 - 0.04,
-            vy: Math.random() * 0.06 - 0.03,
-            parallaxFactor: Math.random() * 0.08 - 0.04,
-          });
-          pIndex++;
+      for (let i = 0; i < count; i++) {
+        const rand = Math.random();
+        let colorType: 'white' | 'accent' | 'dim' = 'white';
+        if (rand < 0.35) {
+          colorType = 'accent';
+        } else if (rand < 0.7) {
+          colorType = 'dim';
         }
+
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+
+        particles.push({
+          x: Math.max(20, Math.min(x, width - 20)),
+          y: Math.max(20, Math.min(y, height - 20)),
+          radius: Math.random() * 1.2 + 0.8,
+          colorType,
+          vx: Math.random() * 0.08 - 0.04,
+          vy: Math.random() * 0.06 - 0.03,
+          parallaxFactor: Math.random() * 0.08 - 0.04,
+        });
       }
     };
 

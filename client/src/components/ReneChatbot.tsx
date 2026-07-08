@@ -78,6 +78,40 @@ function ReneChatbotComponent() {
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [isStreamingMsg, setIsStreamingMsg] = useState(false);
+
+  const simulateStreaming = async (fullText: string) => {
+    setIsStreamingMsg(true);
+    let currentText = '';
+    const chunks = fullText.split(/(?=[\s\n])/); // Split by spaces/newlines keeping the delimiter
+    
+    // Create an empty rene message first
+    const reneMsg: Message = {
+      role: 'rene',
+      content: '',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    setMessages(prev => {
+        messageCountRef.current += 1;
+        return [...prev, reneMsg];
+    });
+
+    for (let i = 0; i < chunks.length; i++) {
+      if (abortControllerRef.current?.signal.aborted) break;
+      currentText += chunks[i];
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1].content = currentText;
+        return newMsgs;
+      });
+      // Delay to simulate typing speed
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 20 + 15));
+    }
+    setIsStreamingMsg(false);
+  };
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // ── Rate Limiting State ──────────────────────────────────────
@@ -282,29 +316,32 @@ function ReneChatbotComponent() {
     setInputMessage('');
     messageCountRef.current += 1; // Increment counter for user message
 
+    
     try {
       // ── Timeout Guard: 20 seconds AbortController ────────────────
       abortControllerRef.current = new AbortController();
       const timeoutId = setTimeout(() => {
-        abortControllerRef.current?.abort();
+        if (!isStreamingMsg) abortControllerRef.current?.abort();
       }, 20000);
 
-      const responseText = await sendReneMessage(trimmed, abortControllerRef.current.signal);
+      let responseText = '';
+      
+      if (PRE_PROGRAMMED_ANSWERS[trimmed]) {
+          responseText = PRE_PROGRAMMED_ANSWERS[trimmed];
+      } else {
+          responseText = await sendReneMessage(trimmed, abortControllerRef.current.signal);
+      }
       clearTimeout(timeoutId);
 
-      const reneMsg: Message = {
-        role: 'rene',
-        content: responseText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      saveChatHistory([...newHistory, reneMsg]);
-      messageCountRef.current += 1; // Increment counter for Réne response
+      setIsLoading(false);
+      isLoadingRef.current = false;
+      await simulateStreaming(responseText);
 
       // ── Start 8-second cooldown ──────────────────────────────────
       lastMessageSentTimeRef.current = Date.now();
       setCooldownTimeRemaining(8);
     } catch (error: any) {
+
       // Handle timeout specifically
       if (error?.name === 'AbortError' || error?.message === 'Aborted') {
         const timeoutMsg: Message = {
@@ -538,18 +575,18 @@ function ReneChatbotComponent() {
               </div>
 
               {/* Bottom control quick replies */}
-              {messages.length === 1 && !sessionLimitReached && (
-                <div className="px-6 pb-2 select-none z-10">
+              {!sessionLimitReached && (
+                <div className="px-6 pb-2 select-none z-10 w-full overflow-hidden border-t border-white/[0.04] pt-4 mt-2 bg-[#090909]">
                   <div className="text-[9px] uppercase tracking-[0.25em] text-white/25 mb-2 font-mono">
                     Suggested Inquiries
                   </div>
-                  <div className="flex flex-wrap gap-2 pointer-events-auto">
+                  <div className="flex gap-2 pointer-events-auto overflow-x-auto pb-2 rene-scrollbar w-full" style={{ scrollbarWidth: 'none' }}>
                     {SUGGESTED_QUERIES.map((q, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleSendMessage(q.text)}
-                        disabled={cooldownTimeRemaining > 0 || isLoading}
-                        className="text-[10px] md:text-xs px-3 py-1.5 rounded-full border border-white/[0.04] bg-[#0c0c0c] hover:bg-[#151515] hover:border-accent/40 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 cursor-pointer"
+                        disabled={cooldownTimeRemaining > 0 || isLoading || isStreamingMsg}
+                        className="text-[10px] md:text-xs px-3 py-1.5 rounded-full border border-white/[0.04] bg-[#0c0c0c] hover:bg-[#151515] hover:border-accent/40 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 cursor-pointer whitespace-nowrap flex-shrink-0"
                       >
                         {q.label}
                       </button>
@@ -575,7 +612,7 @@ function ReneChatbotComponent() {
                       onChange={(e) => setInputMessage(e.target.value)}
                       onKeyDown={handleKeyPress}
                       placeholder={cooldownTimeRemaining > 0 ? `Please wait ${cooldownTimeRemaining}s...` : "Ask Réne about his technical work..."}
-                      disabled={isLoading || cooldownTimeRemaining > 0}
+                      disabled={isLoading || isStreamingMsg || cooldownTimeRemaining > 0}
                       className="flex-1 bg-[#0d0d0d] border border-white/[0.06] focus:border-accent/45 focus:outline-none rounded-xl px-5 py-3.5 text-xs md:text-sm text-white placeholder-white/25 disabled:opacity-50 transition-all duration-300 font-sans tracking-[0.03em]"
                     />
                     {cooldownTimeRemaining > 0 && (

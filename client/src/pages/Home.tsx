@@ -21,6 +21,8 @@ import { TriumphConfetti } from '@/components/TriumphConfetti';
 const ArsenalSection = lazy(() => import('@/sections/ArsenalSection'));
 const ContactSection = lazy(() => import('@/sections/ContactSection'));
 const ReneChatbot = lazy(() => import('@/components/ReneChatbot'));
+const MoreProjectsSection = lazy(() => import('@/sections/MoreProjectsSection'));
+const OpenSourceSection = lazy(() => import('@/sections/OpenSourceSection'));
 
 export default function Home() {
   // Initialize foundational mouse and scroll effects
@@ -31,6 +33,7 @@ export default function Home() {
 
   const [activeChapter, setActiveChapter] = useAtom(activeChapterAtom);
   const [teamsCount, setTeamsCount] = useState(0);
+  const [hackIndiaTeamsCount, setHackIndiaTeamsCount] = useState(0);
   const [activeNode, setActiveNode] = useState<string | null>(null);
   const [scrollPercent, setScrollPercent] = useAtom(scrollPercentAtom);
   const [subScene, setSubScene] = useAtom(subSceneAtom);
@@ -94,9 +97,11 @@ export default function Home() {
     { id: 'chapter-hero', label: 'THE FOCUS', num: '00' },
     { id: 'chapter-origin', label: 'THE ORIGIN', num: '01' },
     { id: 'chapter-projects', label: 'THE BUILD', num: '02' },
-    { id: 'chapter-skills', label: 'THE ARSENAL', num: '03' },
-    { id: 'chapter-achievements', label: 'THE TRIUMPH', num: '04' },
-    { id: 'chapter-contact', label: 'THE HORIZON', num: '05' }
+    { id: 'chapter-more-projects', label: 'MORE PROJECTS', num: '03' },
+    { id: 'chapter-skills', label: 'THE ARSENAL', num: '04' },
+    { id: 'chapter-open-source', label: 'OPEN SOURCE', num: '05' },
+    { id: 'chapter-achievements', label: 'THE TRIUMPH', num: '06' },
+    { id: 'chapter-contact', label: 'THE HORIZON', num: '07' }
   ];
 
   useEffect(() => {
@@ -492,10 +497,11 @@ export default function Home() {
     };
   }, [tier]);
 
-  // Chapter 4 (Achievements) Premium Entrance + Count-Up
+  // Chapter 6 (Achievements) Premium Entrance + Count-Up
   useEffect(() => {
     if (tier === 'low') {
       setTeamsCount(150);
+      setHackIndiaTeamsCount(450);
       return;
     }
     if (!winRef.current) return;
@@ -544,9 +550,10 @@ export default function Home() {
       );
 
       // Teams counter: count-up animation (1.2s ease-in-out)
-      const counterObj = { val: 0 };
+      const counterObj = { val: 0, val2: 0 };
       gsap.to(counterObj, {
         val: 150,
+        val2: 450,
         duration: d(1.2),
         ease: 'power2.inOut',
         scrollTrigger: {
@@ -558,6 +565,7 @@ export default function Home() {
         },
         onUpdate: () => {
           setTeamsCount(Math.floor(counterObj.val));
+          setHackIndiaTeamsCount(Math.floor(counterObj.val2));
         },
       });
 
@@ -669,14 +677,14 @@ export default function Home() {
               className="group flex items-center gap-4 cursor-pointer text-right outline-none focus:outline-none"
             >
               {/* Tooltip Label */}
-              <span className={`text-[10px] uppercase font-light tracking-[0.25em] transition-all duration-500 ${
+              <span className={`text-[10px] uppercase font-light tracking-[0.25em] transition-[opacity,transform] duration-500 ${
                 isActive ? 'opacity-90 text-accent translate-x-0' : 'opacity-0 translate-x-2 group-hover:opacity-60 group-hover:translate-x-0'
               }`}>
                 {ch.num} // {ch.label}
               </span>
               
               {/* Visual Indicator Dot */}
-              <span className={`relative w-[6px] h-[6px] rounded-full transition-all duration-500 ${
+              <span className={`relative w-[6px] h-[6px] rounded-full transition-[opacity,transform] duration-500 ${
                 isActive ? 'bg-accent scale-150 shadow-[0_0_10px_#E8E8E8]' : 'bg-white/20 group-hover:bg-white/50'
               }`}>
                 {isActive && (
@@ -710,11 +718,7 @@ export default function Home() {
         {/* Subtle technological SVG grid backdrop (same as about me) */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.02] z-10 tech-grid-overlay">
           <svg width="100%" height="100%">
-            <defs>
-              <pattern id="hero-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="1" />
-              </pattern>
-            </defs>
+            
             <rect width="100%" height="100%" fill="url(#hero-grid)" />
           </svg>
         </div>
@@ -754,11 +758,7 @@ export default function Home() {
         {/* Subtle technological SVG grid backdrop (extremely faint for luxury negative space) */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.015]">
           <svg width="100%" height="100%">
-            <defs>
-              <pattern id="origin-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="1" />
-              </pattern>
-            </defs>
+            
             <rect width="100%" height="100%" fill="url(#origin-grid)" />
           </svg>
         </div>
@@ -815,12 +815,12 @@ export default function Home() {
             </p>
 
             <div className="origin-line line-7 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-4 text-xs md:text-sm font-light text-white/70 max-w-4xl pt-1 opacity-0 translate-y-5 select-none pointer-events-none">
-              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-all duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Backend</span> Python, FastAPI, asyncio</div>
-              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-all duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Frontend</span> React 19, TypeScript, Three.js, Framer Motion</div>
-              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-all duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Data Layer</span> Redis, PostgreSQL, MySQL, ChromaDB, Elasticsearch</div>
-              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-all duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">AI Layer</span> LangChain, MCP, OpenAI, Groq, Gemini 2.0</div>
-              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-all duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Infrastructure</span> Docker, OAuth2, JWT, Playwright</div>
-              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-all duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)] justify-center"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Adaptive</span> And whatever the problem needs.</div>
+              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-[opacity,transform] duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Backend</span> Python, FastAPI, asyncio</div>
+              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-[opacity,transform] duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Frontend</span> React 19, TypeScript, Three.js, Framer Motion</div>
+              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-[opacity,transform] duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Data Layer</span> Redis, PostgreSQL, MySQL, ChromaDB, Elasticsearch</div>
+              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-[opacity,transform] duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">AI Layer</span> LangChain, MCP, OpenAI, Groq, Gemini 2.0</div>
+              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-[opacity,transform] duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)]"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Infrastructure</span> Docker, OAuth2, JWT, Playwright</div>
+              <div className="flex flex-col gap-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-lg hover:bg-white/[0.03] hover:border-white/[0.08] transition-[opacity,transform] duration-300 shadow-[inset_0_0_12px_rgba(255,255,255,0.01)] justify-center"><span className="text-[#C9A961] font-mono font-semibold text-[10px] uppercase tracking-wider">Adaptive</span> And whatever the problem needs.</div>
             </div>
 
             <p 
@@ -888,7 +888,7 @@ export default function Home() {
             >
               {/* Slide 1: ATLAS */}
               <div 
-                className="min-w-full w-full flex-shrink-0 px-1 pb-4 flex flex-col gap-4 text-left transition-all duration-700 ease-out"
+                className="min-w-full w-full flex-shrink-0 px-1 pb-4 flex flex-col gap-4 text-left transition-[opacity,transform] duration-700 ease-out"
                 style={{
                   transform: `translateX(-${activeProject * 100}%)`,
                   transition: 'transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
@@ -945,7 +945,7 @@ export default function Home() {
                 </p>
 
                 {/* Diagram box */}
-                <div className={`relative w-full rounded-lg overflow-hidden border border-white/5 bg-black/60 backdrop-blur-sm p-4 transition-all duration-300 ${diagramCollapsed ? 'h-14' : 'h-[260px]'}`}>
+                <div className={`relative w-full rounded-lg overflow-hidden border border-white/5 bg-black/60  p-4 transition-[opacity,transform] duration-300 ${diagramCollapsed ? 'h-14' : 'h-[260px]'}`}>
                   <button 
                     onClick={() => setDiagramCollapsed(!diagramCollapsed)}
                     className="absolute top-2 right-2 z-30 text-white/40 hover:text-white transition-colors text-xs font-mono px-2 py-0.5 rounded border border-white/10 bg-black/40"
@@ -961,7 +961,7 @@ export default function Home() {
                         </span>
                         <button
                           onClick={() => setShowLowTierDiagram(true)}
-                          className="px-4 py-1.5 rounded-full border border-accent/30 text-accent text-xs font-mono hover:bg-accent hover:text-black transition-all duration-300 pointer-events-auto"
+                          className="px-4 py-1.5 rounded-full border border-accent/30 text-accent text-xs font-mono hover:bg-accent hover:text-black transition-[opacity,transform] duration-300 pointer-events-auto"
                         >
                           Tap to load diagram
                         </button>
@@ -970,15 +970,7 @@ export default function Home() {
                       <>
                         <div className="absolute inset-0 project-right-panel project-right-panel-atlas -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(232, 232, 232, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
                       <svg viewBox="0 0 600 450" className="w-full h-full select-none max-w-md mx-auto" style={{ overflow: 'visible' }}>
-                        <defs>
-                          <filter id="glow-platinum-mobile" x="-20%" y="-20%" width="140%" height="140%">
-                            <feGaussianBlur stdDeviation="6" result="blur" />
-                            <feMerge>
-                              <feMergeNode in="blur" />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                          </filter>
-                        </defs>
+                        
                         {/* 1. Input -> Planner */}
                         <path d="M 80 225 L 200 135" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
                         <path d="M 80 225 L 200 135" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
@@ -999,33 +991,33 @@ export default function Home() {
                         <path d="M 340 315 L 500 225" stroke="#E8E8E8" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
                         {/* Nodes */}
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('input')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'input' ? null : 'input')}>
-                          <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2.5" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2.5" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                           <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">INGEST</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('planner')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'planner' ? null : 'planner')}>
-                          <circle cx="200" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <circle cx="200" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                           <text x="200" y="139" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PLANNER</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('swarm')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'swarm' ? null : 'swarm')}>
-                          <circle cx="200" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <circle cx="200" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                           <text x="200" y="319" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SWARM</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('guard')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'guard' ? null : 'guard')}>
-                          <circle cx="340" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <circle cx="340" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                           <text x="340" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">GUARD</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('aegis')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'aegis' ? null : 'aegis')}>
-                          <circle cx="340" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                          <circle cx="340" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                           <text x="340" y="319" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SANDBOX</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('output')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'output' ? null : 'output')}>
-                          <circle cx="500" cy="225" r="34" fill="#E8E8E8" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum-mobile)" className="transition-all duration-300 group-hover:opacity-90" />
+                          <circle cx="500" cy="225" r="34" fill="#E8E8E8" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:opacity-90" />
                           <text x="500" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DEPLOY</text>
                         </g>
                       </svg>
                       
                       {/* Telemetry info HUD box */}
-                      <div className={`absolute bottom-3 left-3 right-3 p-3 rounded-lg border bg-black/90 backdrop-blur-md transition-all duration-300 text-left ${
+                      <div className={`absolute bottom-3 left-3 right-3 p-3 rounded-lg border bg-black/90  transition-[opacity,transform] duration-300 text-left ${
                         activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-accent/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
                       }`}>
                         {activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') && (
@@ -1053,7 +1045,7 @@ export default function Home() {
 
               {/* Slide 2: NEXORA */}
               <div 
-                className="min-w-full w-full flex-shrink-0 px-1 pb-4 flex flex-col gap-4 text-left transition-all duration-700 ease-out"
+                className="min-w-full w-full flex-shrink-0 px-1 pb-4 flex flex-col gap-4 text-left transition-[opacity,transform] duration-700 ease-out"
                 style={{
                   transform: `translateX(-${activeProject * 100}%)`,
                   transition: 'transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
@@ -1105,7 +1097,7 @@ export default function Home() {
                 </p>
 
                 {/* Diagram box */}
-                <div className={`relative w-full rounded-lg overflow-hidden border border-white/5 bg-black/60 backdrop-blur-sm p-4 transition-all duration-300 ${diagramCollapsed ? 'h-14' : 'h-[260px]'}`}>
+                <div className={`relative w-full rounded-lg overflow-hidden border border-white/5 bg-black/60  p-4 transition-[opacity,transform] duration-300 ${diagramCollapsed ? 'h-14' : 'h-[260px]'}`}>
                   <button 
                     onClick={() => setDiagramCollapsed(!diagramCollapsed)}
                     className="absolute top-2 right-2 z-30 text-white/40 hover:text-white transition-colors text-xs font-mono px-2 py-0.5 rounded border border-white/10 bg-black/40"
@@ -1121,7 +1113,7 @@ export default function Home() {
                         </span>
                         <button
                           onClick={() => setShowLowTierDiagram(true)}
-                          className="px-4 py-1.5 rounded-full border border-[#b464ff]/30 text-[#b464ff] text-xs font-mono hover:bg-[#b464ff] hover:text-black transition-all duration-300 pointer-events-auto"
+                          className="px-4 py-1.5 rounded-full border border-[#b464ff]/30 text-[#b464ff] text-xs font-mono hover:bg-[#b464ff] hover:text-black transition-[opacity,transform] duration-300 pointer-events-auto"
                         >
                           Tap to load diagram
                         </button>
@@ -1130,22 +1122,7 @@ export default function Home() {
                       <>
                         <div className="absolute inset-0 project-right-panel project-right-panel-nexora -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(180, 100, 255, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
                       <svg viewBox="0 0 600 450" className="w-full h-full select-none max-w-md mx-auto" style={{ overflow: 'visible' }}>
-                        <defs>
-                          <filter id="glow-purple-mobile" x="-30%" y="-30%" width="160%" height="160%">
-                            <feGaussianBlur stdDeviation="8" result="blur" />
-                            <feMerge>
-                              <feMergeNode in="blur" />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                          </filter>
-                          <filter id="glow-triage-mobile" x="-40%" y="-40%" width="180%" height="180%">
-                            <feGaussianBlur stdDeviation="12" result="blur" />
-                            <feMerge>
-                              <feMergeNode in="blur" />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                          </filter>
-                        </defs>
+                        
                         {/* 1. SUBMIT -> TRIAGE */}
                         <path d="M 60 225 L 180 225" stroke="rgba(180,100,255,0.12)" strokeWidth="2" fill="none" />
                         <path d="M 60 225 L 180 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
@@ -1166,35 +1143,35 @@ export default function Home() {
                         <path d="M 420 225 L 540 225" stroke="#b464ff" strokeWidth="2.5" fill="none" className="pulse-path opacity-80" />
                         {/* Nodes */}
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-submit')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-submit' ? null : 'nexora-submit')}>
-                          <circle cx="60" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                          <circle cx="60" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-[#b464ff]/10" />
                           <text x="60" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SUBMIT</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-triage')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-triage' ? null : 'nexora-triage')}>
                           <circle cx="180" cy="225" r="40" fill="none" stroke="#b464ff" strokeWidth="1" className="animate-ping opacity-25" />
-                          <circle cx="180" cy="225" r="34" fill="#08050e" stroke="#c084fc" strokeWidth="3" filter="url(#glow-triage-mobile)" className="transition-all duration-300 group-hover:stroke-white" />
+                          <circle cx="180" cy="225" r="34" fill="#08050e" stroke="#c084fc" strokeWidth="3" className="transition-[opacity,transform] duration-300 group-hover:stroke-white" />
                           <text x="180" y="222" fill="#c084fc" fontSize="9" fontWeight="black" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace" className="group-hover:fill-white transition-colors duration-300">TRIAGE</text>
                           <text x="180" y="232" fill="white" fontSize="7" fontWeight="bold" letterSpacing="0.03em" textAnchor="middle" fontFamily="monospace" className="opacity-70">(AI)</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-assign')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-assign' ? null : 'nexora-assign')}>
-                          <circle cx="300" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                          <circle cx="300" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-[#b464ff]/10" />
                           <text x="300" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ASSIGN</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-escalate')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-escalate' ? null : 'nexora-escalate')}>
-                          <circle cx="180" cy="360" r="28" fill="#050505" stroke="#ef4444" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:fill-red-500/10" />
+                          <circle cx="180" cy="360" r="28" fill="#050505" stroke="#ef4444" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-red-500/10" />
                           <text x="180" y="364" fill="#ef4444" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ESCALATE</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-resolve')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-resolve' ? null : 'nexora-resolve')}>
-                          <circle cx="420" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                          <circle cx="420" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-[#b464ff]/10" />
                           <text x="420" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">RESOLVE</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('nexora-close')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'nexora-close' ? null : 'nexora-close')}>
-                          <circle cx="540" cy="225" r="30" fill="#b464ff" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple-mobile)" className="transition-all duration-300 group-hover:opacity-90" />
+                          <circle cx="540" cy="225" r="30" fill="#b464ff" stroke="#b464ff" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:opacity-90" />
                           <text x="540" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">CLOSE</text>
                         </g>
                       </svg>
                       
                       {/* Telemetry info HUD box */}
-                      <div className={`absolute bottom-3 left-3 right-3 p-3 rounded-lg border bg-black/90 backdrop-blur-md transition-all duration-300 text-left ${
+                      <div className={`absolute bottom-3 left-3 right-3 p-3 rounded-lg border bg-black/90  transition-[opacity,transform] duration-300 text-left ${
                         activeNode && activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-[#b464ff]/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
                       }`}>
                         {activeNode && activeNode.startsWith('nexora-') && (
@@ -1222,7 +1199,7 @@ export default function Home() {
 
               {/* Slide 3: STRATOS */}
               <div 
-                className="min-w-full w-full flex-shrink-0 px-1 pb-4 flex flex-col gap-4 text-left transition-all duration-700 ease-out"
+                className="min-w-full w-full flex-shrink-0 px-1 pb-4 flex flex-col gap-4 text-left transition-[opacity,transform] duration-700 ease-out"
                 style={{
                   transform: `translateX(-${activeProject * 100}%)`,
                   transition: 'transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
@@ -1274,7 +1251,7 @@ export default function Home() {
                 </p>
 
                 {/* Diagram box */}
-                <div className={`relative w-full rounded-lg overflow-hidden border border-white/5 bg-black/60 backdrop-blur-sm p-4 transition-all duration-300 ${diagramCollapsed ? 'h-14' : 'h-[260px]'}`}>
+                <div className={`relative w-full rounded-lg overflow-hidden border border-white/5 bg-black/60  p-4 transition-[opacity,transform] duration-300 ${diagramCollapsed ? 'h-14' : 'h-[260px]'}`}>
                   <button 
                     onClick={() => setDiagramCollapsed(!diagramCollapsed)}
                     className="absolute top-2 right-2 z-30 text-white/40 hover:text-white transition-colors text-xs font-mono px-2 py-0.5 rounded border border-white/10 bg-black/40"
@@ -1290,7 +1267,7 @@ export default function Home() {
                         </span>
                         <button
                           onClick={() => setShowLowTierDiagram(true)}
-                          className="px-4 py-1.5 rounded-full border border-amber-500/30 text-amber-500 text-xs font-mono hover:bg-amber-500 hover:text-black transition-all duration-300 pointer-events-auto"
+                          className="px-4 py-1.5 rounded-full border border-amber-500/30 text-amber-500 text-xs font-mono hover:bg-amber-500 hover:text-black transition-[opacity,transform] duration-300 pointer-events-auto"
                         >
                           Tap to load diagram
                         </button>
@@ -1299,15 +1276,7 @@ export default function Home() {
                       <>
                         <div className="absolute inset-0 project-right-panel project-right-panel-stratos -z-10 animate-fade-in" style={{ background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
                       <svg viewBox="0 0 600 450" className="w-full h-full select-none max-w-md mx-auto" style={{ overflow: 'visible' }}>
-                        <defs>
-                          <filter id="glow-amber-mobile" x="-20%" y="-20%" width="140%" height="140%">
-                            <feGaussianBlur stdDeviation="6" result="blur" />
-                            <feMerge>
-                              <feMergeNode in="blur" />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                          </filter>
-                        </defs>
+                        
                         {/* 1. Queue -> Worker */}
                         <path d="M 80 225 L 200 225" stroke="rgba(255,255,255,0.12)" strokeWidth="2" fill="none" />
                         <path d="M 80 225 L 200 225" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
@@ -1322,29 +1291,29 @@ export default function Home() {
                         <path d="M 320 225 L 460 315" stroke="#f59e0b" strokeWidth="2.5" fill="none" className="pulse-path-amber opacity-80" />
                         {/* Nodes */}
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-queue')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-queue' ? null : 'stratos-queue')}>
-                          <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2.5" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                          <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2.5" className="transition-[opacity,transform] duration-300 group-hover:fill-amber-500/10" />
                           <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">QUEUE</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-worker')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-worker' ? null : 'stratos-worker')}>
-                          <circle cx="200" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                          <circle cx="200" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-amber-500/10" />
                           <text x="200" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">WORKERS</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-pipeline')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-pipeline' ? null : 'stratos-pipeline')}>
-                          <circle cx="320" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                          <circle cx="320" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-amber-500/10" />
                           <text x="320" y="229" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PIPELINE</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-persistence')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-persistence' ? null : 'stratos-persistence')}>
-                          <circle cx="460" cy="135" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                          <circle cx="460" cy="135" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-amber-500/10" />
                           <text x="460" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">STORES</text>
                         </g>
                         <g className="cursor-pointer group" onMouseEnter={() => setActiveNode('stratos-outputs')} onMouseLeave={() => setActiveNode(null)} onTouchStart={() => setActiveNode(activeNode === 'stratos-outputs' ? null : 'stratos-outputs')}>
-                          <circle cx="460" cy="315" r="34" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber-mobile)" className="transition-all duration-300 group-hover:opacity-90" />
+                          <circle cx="460" cy="315" r="34" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:opacity-90" />
                           <text x="460" y="319" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DELIVER</text>
                         </g>
                       </svg>
                       
                       {/* Telemetry info HUD box */}
-                      <div className={`absolute bottom-3 left-3 right-3 p-3 rounded-lg border bg-black/90 backdrop-blur-md transition-all duration-300 text-left ${
+                      <div className={`absolute bottom-3 left-3 right-3 p-3 rounded-lg border bg-black/90  transition-[opacity,transform] duration-300 text-left ${
                         activeNode && activeNode.startsWith('stratos-') ? 'opacity-100 scale-100 border-amber-500/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
                       }`}>
                         {activeNode && activeNode.startsWith('stratos-') && (
@@ -1379,7 +1348,7 @@ export default function Home() {
               onTouchEnd={goPrev}
               disabled={activeProject === 0}
               style={{ touchAction: 'none' }}
-              className="w-11 h-11 rounded-full border border-white/20 bg-black/40 flex items-center justify-center text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-300 active:scale-95"
+              className="w-11 h-11 rounded-full border border-white/20 bg-black/40 flex items-center justify-center text-white disabled:opacity-20 disabled:cursor-not-allowed transition-[opacity,transform] duration-300 active:scale-95"
             >
               ←
             </button>
@@ -1390,7 +1359,7 @@ export default function Home() {
                 <button
                   key={i}
                   onClick={() => setActiveProject(i)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${activeProject === i ? 'bg-white scale-125' : 'bg-white/30'}`}
+                  className={`w-2 h-2 rounded-full transition-[opacity,transform] duration-300 ${activeProject === i ? 'bg-white scale-125' : 'bg-white/30'}`}
                 />
               ))}
             </div>
@@ -1400,7 +1369,7 @@ export default function Home() {
               onTouchEnd={goNext}
               disabled={activeProject === 2}
               style={{ touchAction: 'none' }}
-              className="w-11 h-11 rounded-full border border-white/20 bg-black/40 flex items-center justify-center text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-300 active:scale-95"
+              className="w-11 h-11 rounded-full border border-white/20 bg-black/40 flex items-center justify-center text-white disabled:opacity-20 disabled:cursor-not-allowed transition-[opacity,transform] duration-300 active:scale-95"
             >
               →
             </button>
@@ -1431,7 +1400,7 @@ export default function Home() {
           >
             
             {/* PANEL 2A: ATLAS PROJECT (Node Graph reveal) */}
-            <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 transition-all duration-700 ease-out ${
+            <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 transition-[opacity,transform] duration-700 ease-out ${
               activeProject === 0 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
             }`}>
                    {/* Project Spec details */}
@@ -1478,7 +1447,7 @@ export default function Home() {
                 </div>
 
                 {/* Tech Tags — wrapping row below GitHub button */}
-                <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
+                <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-[opacity,transform] duration-700 delay-200 ${
                   activeProject === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
                 }`}>
                   {['Python', 'FastAPI', 'LangChain', 'React', 'TypeScript', 'Redis', 'ChromaDB', 'Docker', 'ReactFlow', 'Google APIs', 'MCP'].map(tag => (
@@ -1500,16 +1469,7 @@ export default function Home() {
                 <div className="absolute inset-0 project-right-panel project-right-panel-atlas -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(232, 232, 232, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
                 
                 <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
-                  <defs>
-                    {/* Glowing neon shadow filter */}
-                    <filter id="glow-platinum" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="6" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
+                  
   
                   {/* Animated Pulsing Connectors */}
                   {/* 1. Input -> Planner */}
@@ -1543,7 +1503,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('input')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2.5" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2.5" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                     <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">INGEST</text>
                   </g>
   
@@ -1553,7 +1513,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('planner')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="200" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <circle cx="200" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                     <text x="200" y="139" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PLANNER</text>
                   </g>
   
@@ -1563,7 +1523,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('swarm')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="200" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <circle cx="200" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                     <text x="200" y="319" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SWARM</text>
                   </g>
   
@@ -1573,7 +1533,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('guard')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="340" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <circle cx="340" cy="135" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                     <text x="340" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">GUARD</text>
                   </g>
   
@@ -1583,7 +1543,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('aegis')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="340" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:fill-accent/10" />
+                    <circle cx="340" cy="315" r="30" fill="#0c0c0c" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-accent/10" />
                     <text x="340" y="319" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SANDBOX</text>
                   </g>
   
@@ -1593,13 +1553,13 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('output')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="500" cy="225" r="34" fill="#E8E8E8" stroke="#E8E8E8" strokeWidth="2" filter="url(#glow-platinum)" className="transition-all duration-300 group-hover:opacity-90" />
+                    <circle cx="500" cy="225" r="34" fill="#E8E8E8" stroke="#E8E8E8" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:opacity-90" />
                     <text x="500" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DEPLOY</text>
                   </g>
                 </svg>
   
                 {/* Dynamic Overlay HUD Info box */}
-                <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85 backdrop-blur-md transition-all duration-300 text-left ${
+                <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85  transition-[opacity,transform] duration-300 text-left ${
                   activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-accent/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
                 }`}>
                   {activeNode && !activeNode.startsWith('stratos-') && !activeNode.startsWith('nexora-') && (
@@ -1623,7 +1583,7 @@ export default function Home() {
             </div>
   
             {/* PANEL 2B: NEXORA PROJECT */}
-            <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#060606] transition-all duration-700 ease-out ${
+            <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#060606] transition-[opacity,transform] duration-700 ease-out ${
               activeProject === 1 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
             }`}>
                    {/* Description */}
@@ -1650,7 +1610,7 @@ export default function Home() {
                   A production-ready AI-powered customer support platform. Three user tiers, 25+ REST endpoints, a full ticket lifecycle, and an AI engine that triages requests and assists agents in real time.
                 </p>
                 
-                <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
+                <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-[opacity,transform] duration-700 delay-200 ${
                   activeProject === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
                 }`}>
                   {['FastAPI', 'React 19', 'Gemini 2.0', 'MySQL', 'SQLite', 'JWT', 'bcrypt', 'Three.js', 'Framer Motion', 'Tailwind CSS', 'Recharts'].map(tag => (
@@ -1687,23 +1647,7 @@ export default function Home() {
                 <div className="absolute inset-0 project-right-panel project-right-panel-nexora -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(180, 100, 255, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
                 
                 <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
-                  <defs>
-                    {/* Glowing neon shadow filter */}
-                    <filter id="glow-purple" x="-30%" y="-30%" width="160%" height="160%">
-                      <feGaussianBlur stdDeviation="8" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                    <filter id="glow-triage" x="-40%" y="-40%" width="180%" height="180%">
-                      <feGaussianBlur stdDeviation="12" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
+                  
   
                   {/* Animated Pulsing Connectors */}
                   {/* 1. SUBMIT -> TRIAGE */}
@@ -1737,7 +1681,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('nexora-submit')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="60" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                    <circle cx="60" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-[#b464ff]/10" />
                     <text x="60" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">SUBMIT</text>
                   </g>
   
@@ -1749,7 +1693,7 @@ export default function Home() {
                   >
                     {/* Outer pulsing ring */}
                     <circle cx="180" cy="225" r="40" fill="none" stroke="#b464ff" strokeWidth="1" className="animate-ping opacity-25" />
-                    <circle cx="180" cy="225" r="34" fill="#08050e" stroke="#c084fc" strokeWidth="3" filter="url(#glow-triage)" className="transition-all duration-300 group-hover:stroke-white" />
+                    <circle cx="180" cy="225" r="34" fill="#08050e" stroke="#c084fc" strokeWidth="3" className="transition-[opacity,transform] duration-300 group-hover:stroke-white" />
                     <text x="180" y="222" fill="#c084fc" fontSize="9" fontWeight="black" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace" className="group-hover:fill-white transition-colors duration-300">TRIAGE</text>
                     <text x="180" y="232" fill="white" fontSize="7" fontWeight="bold" letterSpacing="0.03em" textAnchor="middle" fontFamily="monospace" className="opacity-70">(AI)</text>
                   </g>
@@ -1760,7 +1704,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('nexora-assign')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="300" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                    <circle cx="300" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-[#b464ff]/10" />
                     <text x="300" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ASSIGN</text>
                   </g>
   
@@ -1770,7 +1714,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('nexora-escalate')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="180" cy="360" r="28" fill="#050505" stroke="#ef4444" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-red-500/10" />
+                    <circle cx="180" cy="360" r="28" fill="#050505" stroke="#ef4444" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-red-500/10" />
                     <text x="180" y="364" fill="#ef4444" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">ESCALATE</text>
                   </g>
   
@@ -1780,7 +1724,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('nexora-resolve')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="420" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:fill-[#b464ff]/10" />
+                    <circle cx="420" cy="225" r="28" fill="#050505" stroke="#b464ff" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-[#b464ff]/10" />
                     <text x="420" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">RESOLVE</text>
                   </g>
   
@@ -1790,13 +1734,13 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('nexora-close')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="540" cy="225" r="30" fill="#b464ff" stroke="#b464ff" strokeWidth="2" filter="url(#glow-purple)" className="transition-all duration-300 group-hover:opacity-90" />
+                    <circle cx="540" cy="225" r="30" fill="#b464ff" stroke="#b464ff" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:opacity-90" />
                     <text x="540" y="229" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">CLOSE</text>
                   </g>
                 </svg>
   
                 {/* Dynamic Overlay HUD Info box */}
-                <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85 backdrop-blur-md transition-all duration-300 text-left ${
+                <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85  transition-[opacity,transform] duration-300 text-left ${
                   activeNode && activeNode.startsWith('nexora-') ? 'opacity-100 scale-100 border-[#b464ff]/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
                 }`}>
                   {activeNode && activeNode.startsWith('nexora-') && (
@@ -1820,7 +1764,7 @@ export default function Home() {
             </div>
   
             {/* PANEL 2C: STRATOS PROJECT */}
-            <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#040404] border-l border-white/5 transition-all duration-700 ease-out ${
+            <div className={`w-[100vw] h-full flex flex-col lg:flex-row items-center justify-between px-14 md:px-20 lg:px-28 py-16 gap-10 bg-[#040404] border-l border-white/5 transition-[opacity,transform] duration-700 ease-out ${
               activeProject === 2 ? 'opacity-100 scale-100' : 'opacity-35 scale-[0.88] pointer-events-none'
             }`}>
                    {/* Project Spec details */}
@@ -1851,7 +1795,7 @@ export default function Home() {
                 </p>
                 
                 {/* Tech Tags */}
-                <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-all duration-700 delay-200 ${
+                <div className={`flex flex-wrap gap-x-2 gap-y-2 w-full max-w-full mb-6 transition-[opacity,transform] duration-700 delay-200 ${
                   activeProject === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
                 }`}>
                   {['Python', 'FastAPI', 'asyncio', 'Redis', 'PostgreSQL', 'Elasticsearch', 'Playwright', 'Groq', 'Docker', 'Pandas', 'Selectolax'].map(tag => (
@@ -1888,16 +1832,7 @@ export default function Home() {
                 <div className="absolute inset-0 project-right-panel project-right-panel-stratos -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.04) 0%, rgba(0, 0, 0, 0.6) 70%)' }} />
                 
                 <svg viewBox="0 0 600 450" className="w-full h-full p-6 select-none max-w-xl min-w-[520px] md:min-w-0 mx-auto" style={{ overflow: 'visible' }}>
-                  <defs>
-                    {/* Glowing amber shadow filter */}
-                    <filter id="glow-amber" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="6" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
+                  
   
                   {/* Animated Pulsing Connectors */}
                   {/* 1. Queue -> Worker */}
@@ -1923,7 +1858,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('stratos-queue')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2.5" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                    <circle cx="80" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2.5" className="transition-[opacity,transform] duration-300 group-hover:fill-amber-500/10" />
                     <text x="80" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">QUEUE</text>
                   </g>
   
@@ -1933,7 +1868,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('stratos-worker')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="200" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                    <circle cx="200" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-amber-500/10" />
                     <text x="200" y="229" fill="white" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">WORKERS</text>
                   </g>
   
@@ -1943,7 +1878,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('stratos-pipeline')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="320" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                    <circle cx="320" cy="225" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-amber-500/10" />
                     <text x="320" y="229" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">PIPELINE</text>
                   </g>
   
@@ -1953,7 +1888,7 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('stratos-persistence')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="460" cy="135" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:fill-amber-500/10" />
+                    <circle cx="460" cy="135" r="30" fill="#0c0c0c" stroke="#f59e0b" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:fill-amber-500/10" />
                     <text x="460" y="139" fill="white" fontSize="8" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">STORES</text>
                   </g>
   
@@ -1963,13 +1898,13 @@ export default function Home() {
                     onMouseEnter={() => setActiveNode('stratos-outputs')} 
                     onMouseLeave={() => setActiveNode(null)}
                   >
-                    <circle cx="460" cy="315" r="34" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2" filter="url(#glow-amber)" className="transition-all duration-300 group-hover:opacity-90" />
+                    <circle cx="460" cy="315" r="34" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2" className="transition-[opacity,transform] duration-300 group-hover:opacity-90" />
                     <text x="460" y="319" fill="#050505" fontSize="9" fontWeight="bold" letterSpacing="0.05em" textAnchor="middle" fontFamily="monospace">DELIVER</text>
                   </g>
                 </svg>
   
                 {/* Dynamic Overlay HUD Info box */}
-                <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85 backdrop-blur-md transition-all duration-300 text-left ${
+                <div className={`absolute bottom-6 left-6 right-6 p-4 rounded-xl border bg-black/85  transition-[opacity,transform] duration-300 text-left ${
                   activeNode && activeNode.startsWith('stratos-') ? 'opacity-100 scale-100 border-amber-500/40' : 'opacity-0 scale-95 border-white/5 pointer-events-none'
                 }`}>
                   {activeNode && activeNode.startsWith('stratos-') && (
@@ -2000,7 +1935,7 @@ export default function Home() {
             <button
               onClick={() => handleNavigateProject(activeProject - 1)}
               disabled={activeProject === 0}
-              className={`absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
+              className={`absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60  flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-[opacity,transform] duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
                 activeProject === 0 ? 'opacity-10 pointer-events-none' : 'opacity-70 hover:opacity-100'
               }`}
               title="Previous Project"
@@ -2014,7 +1949,7 @@ export default function Home() {
             <button
               onClick={() => handleNavigateProject(activeProject + 1)}
               disabled={activeProject === 2}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-all duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
+              className={`absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/10 bg-black/60  flex items-center justify-center text-white cursor-pointer pointer-events-auto transition-[opacity,transform] duration-400 focus:outline-none select-none hover:bg-white/10 hover:border-white/20 active:scale-95 ${
                 activeProject === 2 ? 'opacity-10 pointer-events-none' : 'opacity-70 hover:opacity-100'
               }`}
               title="Next Project"
@@ -2030,7 +1965,7 @@ export default function Home() {
                 <button
                   key={idx}
                   onClick={() => handleNavigateProject(idx)}
-                  className={`w-3.5 h-3.5 rounded-full border transition-all duration-500 cursor-pointer pointer-events-auto flex items-center justify-center focus:outline-none ${
+                  className={`w-3.5 h-3.5 rounded-full border transition-[opacity,transform] duration-500 cursor-pointer pointer-events-auto flex items-center justify-center focus:outline-none ${
                     activeProject === idx 
                       ? 'bg-accent border-accent scale-125' 
                       : 'bg-white/10 border-white/20 hover:bg-white/25 hover:border-white/30'
@@ -2041,13 +1976,24 @@ export default function Home() {
             </div>
           </div>
         </section>
-      )}{/* CHAPTER 3 — THE ARSENAL (lazy-loaded) */}
+      )}
+
+      {/* MORE PROJECTS (lazy-loaded) */}
+      <Suspense fallback={<div className="h-screen" />}>
+        <MoreProjectsSection />
+      </Suspense>
+
+      {/* CHAPTER 4 — THE ARSENAL (lazy-loaded) */}
       <Suspense fallback={<div className="h-screen" />}>
         <ArsenalSection ref={arsenalRef} />
       </Suspense>
 
+      {/* OPEN SOURCE CONTRIBUTIONS (lazy-loaded) */}
+      <Suspense fallback={<div className="h-screen" />}>
+        <OpenSourceSection />
+      </Suspense>
 
-        {/* CHAPTER 4 — THE WIN (Samsung PRISM cinematic unlock) */}
+        {/* CHAPTER 6 — THE WIN (Samsung PRISM & HackIndia cinematic unlock) */}
         <section 
           id="chapter-achievements" 
           ref={winRef}
@@ -2065,38 +2011,72 @@ export default function Home() {
 
         <div className="max-w-4xl mx-auto w-full flex flex-col items-center justify-center text-center px-6 select-none">
           
-          <div className="achievement-badge mb-6 px-4 py-1.5 rounded-full border border-accent/35 bg-accent/5 text-xs text-accent tracking-[0.4em] uppercase font-bold flex items-center gap-2">
+          <div className="achievement-badge mb-12 px-4 py-1.5 rounded-full border border-accent/35 bg-accent/5 text-xs text-accent tracking-[0.4em] uppercase font-bold flex items-center gap-2">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-6.75a1.125 1.125 0 00-1.125 1.125v3.375m9 0h-9M9 10.5h.008v.008H9V10.5zm.563 0h.008v.008H9.563V10.5zm.562 0h.008v.008H10.12V10.5zm-.562 3h.008v.008H9.563v-.008zm-.563 0h.008v.008H9v-.008zm.563 0h.008v.008H9.563v-.008zm1.688-3h.008v.008H11.25V10.5zm.562 0h.008v.008H11.81V10.5zm.563 0h.008v.008H12.37V10.5zm-.563 3h.008v.008H11.81v-.008zm-.562 0h.008v.008H11.25v-.008zm.562 0h.008v.008H11.81v-.008zm3.937-3h.008v.008H15.75V10.5zm.563 0h.008v.008H16.31V10.5zm.562 0h.008v.008H16.87V10.5zm-.562 3h.008v.008H16.31v-.008zm-.563 0h.008v.008H15.75v-.008zm.563 0h.008v.008H16.31v-.008z" />
             </svg>
-            ACHIEVEMENT UNLOCKED
+            ACHIEVEMENTS UNLOCKED
           </div>
 
-          <h2 
-            className="achievement-title text-5xl md:text-7xl lg:text-8xl font-light tracking-tight text-white mb-2 uppercase"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
-            SAMSUNG PRISM
-          </h2>
-          
-          <p className="achievement-subtitle text-accent text-lg md:text-2xl font-light tracking-[0.2em] mb-16 uppercase">
-            CINEMATIC CAPSTONE CHAMPIONSHIP
-          </p>
+          <div className="flex flex-col gap-32 w-full">
+            {/* 1st Achievement */}
+            <div className="relative">
+              <h2 
+                className="achievement-title text-4xl md:text-6xl lg:text-7xl font-light tracking-tight text-white mb-2 uppercase"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                SAMSUNG PRISM
+              </h2>
+              
+              <p className="achievement-subtitle text-[#C9A961] text-sm md:text-xl font-light tracking-[0.2em] mb-12 uppercase">
+                CINEMATIC CAPSTONE CHAMPIONSHIP
+              </p>
 
-          {/* Achievement Scores Grid */}
-          <div className="achievement-scores grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 max-w-2xl w-full">
-            <div className="flex flex-col items-center border-r border-white/5">
-              <span className="text-[120px] font-extralight text-accent leading-none tracking-tighter">1st</span>
-              <span className="text-xs uppercase tracking-[0.3em] text-white/40 mt-3 block">CHAMPIONSHIP PLACE</span>
-            </div>
-            
-            <div className="flex flex-col items-center">
-              <div className="h-[120px] flex items-center justify-center">
-                <span className="text-7xl md:text-8xl font-extralight text-white leading-none tracking-tighter font-mono">
-                  {teamsCount}+
-                </span>
+              <div className="achievement-scores flex flex-col md:flex-row justify-center items-center gap-8 md:gap-16 max-w-2xl mx-auto w-full">
+                <div className="flex flex-col items-center border-b md:border-b-0 md:border-r border-white/10 pb-8 md:pb-0 md:pr-16 w-full md:w-1/2">
+                  <span className="text-[70px] md:text-[100px] font-extralight text-[#C9A961] leading-none tracking-tighter">1st</span>
+                  <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] text-white/40 mt-3 block">CHAMPIONSHIP PLACE</span>
+                </div>
+                
+                <div className="flex flex-col items-center justify-center w-full md:w-1/2 pt-4 md:pt-0">
+                  <div className="h-[80px] md:h-[100px] flex items-center justify-center">
+                    <span className="text-6xl md:text-7xl font-extralight text-white leading-none tracking-tighter font-mono">
+                      {teamsCount}+
+                    </span>
+                  </div>
+                  <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] text-white/40 mt-3 block">TEAMS DEFEATED</span>
+                </div>
               </div>
-              <span className="text-xs uppercase tracking-[0.3em] text-white/40 mt-3 block">TEAMS DEFEATED NATIONWIDE</span>
+            </div>
+
+            {/* 2nd Achievement */}
+            <div className="relative pt-16 border-t border-white/5">
+              <h2 
+                className="achievement-title text-3xl md:text-5xl lg:text-6xl font-light tracking-tight text-white mb-2 uppercase"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                HACKINDIA AI AGENTS
+              </h2>
+              
+              <p className="achievement-subtitle text-[#C9A961] text-xs md:text-lg font-light tracking-[0.2em] mb-12 uppercase">
+                NATIONAL HACKATHON 2026
+              </p>
+
+              <div className="achievement-scores flex flex-col md:flex-row justify-center items-center gap-8 md:gap-16 max-w-2xl mx-auto w-full">
+                <div className="flex flex-col items-center border-b md:border-b-0 md:border-r border-white/10 pb-8 md:pb-0 md:pr-16 w-full md:w-1/2">
+                  <span className="text-[60px] md:text-[85px] font-extralight text-[#C9A961] leading-none tracking-tighter">3rd</span>
+                  <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] text-white/40 mt-3 block">2ND RUNNER UP</span>
+                </div>
+                
+                <div className="flex flex-col items-center justify-center w-full md:w-1/2 pt-4 md:pt-0">
+                  <div className="h-[70px] md:h-[85px] flex items-center justify-center">
+                    <span className="text-5xl md:text-6xl font-extralight text-white leading-none tracking-tighter font-mono">
+                      {hackIndiaTeamsCount}+
+                    </span>
+                  </div>
+                  <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] text-white/40 mt-3 block">TEAMS DEFEATED</span>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -4,8 +4,8 @@ import { useInView } from 'framer-motion';
 
 export const TriumphConfetti = () => {
   const ref = useRef<HTMLDivElement>(null);
-  // Require at least 75% of the section visible before firing
-  const isInView = useInView(ref, { once: true, amount: 0.75 });
+  // Require at least 25% of the section visible before firing (since it can be taller than screen)
+  const isInView = useInView(ref, { once: true, amount: 0.25 });
   const fired = useRef(false);
   const isMobileRef = useRef(
     typeof window !== 'undefined' && window.innerWidth < 768
